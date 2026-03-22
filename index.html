@@ -647,6 +647,43 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
 </div>
 
 
+<!-- MODAL API KEY -->
+<div class="mbg" id="apiBg">
+<div class="mbox sm" style="max-width:500px">
+  <div class="mhd" style="background:linear-gradient(135deg,#4a148c,#7b1fa2)">
+    <div><h2>🤖 Cài đặt AI sinh nhận xét</h2><p>Nhập Anthropic API Key để dùng tính năng AI</p></div>
+    <button class="mcl" onclick="cm('apiBg')">✕</button>
+  </div>
+  <div class="mbd">
+    <div class="ib blue" style="margin-bottom:14px">
+      <strong>📋 Cách lấy API Key miễn phí</strong>
+      <ol>
+        <li>Vào <strong>platform.claude.com</strong> → Đăng nhập</li>
+        <li>Click <strong>"Khóa API"</strong> ở menu trái</li>
+        <li>Nhấn <strong>"+ Tạo khóa"</strong> → Đặt tên → Copy key</li>
+        <li>Key dạng: <code>sk-ant-api03-...</code></li>
+      </ol>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="display:block;font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Anthropic API Key</label>
+      <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." style="width:100%;height:42px;border:1.5px solid var(--bd2);border-radius:var(--r8);padding:0 12px;font-family:monospace;font-size:13px;outline:none;transition:.2s;background:#fafbfd" oninput="this.style.borderColor=this.value?'var(--p)':'var(--bd2)'">
+      <p style="font-size:11px;color:var(--tx3);margin-top:4px">Key được lưu trong máy này, không gửi đi đâu khác</p>
+    </div>
+    <div class="ib warn" style="margin-bottom:0">
+      <strong>⚙️ Hoặc cấu hình qua Google Apps Script (tốt hơn)</strong>
+      <p>Cập nhật Code.gs mới → Deploy → Thêm <code>ANTHROPIC_API_KEY</code> vào Script Properties → AI hoạt động tự động cho tất cả máy, không cần nhập key từng máy.</p>
+    </div>
+  </div>
+  <div class="mft">
+    <div class="mft-l" id="api-key-err" style="color:var(--r);font-size:12px"></div>
+    <div class="mft-r">
+      <button class="btn bout" onclick="cm('apiBg')">Hủy</button>
+      <button class="btn" style="background:linear-gradient(135deg,#4a148c,#7b1fa2);color:#fff" onclick="saveApiKey()">💾 Lưu và dùng AI</button>
+    </div>
+  </div>
+</div>
+</div>
+
 <!-- MODAL NHẬP ĐIỂM -->
 <div class="mbg" id="mBg">
 <div class="mbox">
@@ -1304,6 +1341,7 @@ function colG(){
 }
 function cm(id){T(id).classList.remove('on');if(id==='mBg') eIdx=null;}
 T('mBg').addEventListener('click',function(e){if(e.target.id==='mBg') cm('mBg');});
+document.addEventListener('click',function(e){if(e.target.id==='apiBg') cm('apiBg');});
 T('uBg').addEventListener('click',function(e){if(e.target.id==='uBg') cm('uBg');});
 document.addEventListener('click',function(e){if(e.target.id==='qrBg') cm('qrBg');});
 T('uBg').addEventListener('click',function(e){if(e.target.id==='uBg') cm('uBg');});
@@ -2285,35 +2323,38 @@ async function hbGenAI(){
 
   try{
     var aiResult;
-    // Thử GAS proxy trước (production), fallback direct nếu GAS lỗi
-    var gasOk = false;
+    // ── BƯỚC 1: Thử GAS proxy (cách tốt nhất - không bị CORS) ──
+    var gasOk=false;
     if(GAS){
       try{
         var gasRes=await gasPost({action:'aiChat',prompt:aiPrompt});
-        if(gasRes.ok){aiResult=gasRes.text||'';gasOk=true;}
-        else if(gasRes.error&&gasRes.error.indexOf('Unknown POST action')>=0){
-          // Code.gs chưa có aiChat → báo user update
-          var errMsg = '⚠️ Cần cập nhật Code.gs:\n1. Tải file Code.gs mới\n2. Dán vào Apps Script → Lưu\n3. Deploy → Phiên bản mới\n4. Vào Project Settings → Script Properties → thêm:\n   ANTHROPIC_API_KEY = sk-ant-api03-...\n(Lấy tại: console.anthropic.com)';
-          console.warn('Code.gs chưa có aiChat, thử direct call với user API key...');
-          gasOk=false; // fallthrough sang direct call với user API key
+        if(gasRes.ok){
+          aiResult=gasRes.text||'';
+          gasOk=true;
+        } else if(gasRes.error&&gasRes.error.indexOf('Unknown POST action')>=0){
+          // Code.gs chưa có aiChat → cần cập nhật
+          gasOk=false;
+        } else if(gasRes.error&&gasRes.error.indexOf('ANTHROPIC_API_KEY')>=0){
+          // Code.gs đã cập nhật nhưng chưa có API key
+          throw new Error('⚠️ Vào Apps Script → Project Settings → Script Properties → thêm:\nANTHROPIC_API_KEY = sk-ant-api03-...');
         } else {
           throw new Error(gasRes.error||'GAS AI error');
         }
       }catch(gasErr){
-        if(gasErr.message.indexOf('Code.gs')>=0) throw gasErr;
-        // GAS lỗi khác → thử direct call
-        console.warn('GAS AI failed, trying direct:', gasErr.message);
+        if(gasErr.message.indexOf('Script Properties')>=0) throw gasErr;
       }
     }
+    // ── BƯỚC 2: Dùng API key của user (lưu trong máy) ──
     if(!gasOk){
-      // Thử dùng API key được lưu trong settings
       var userKey=localStorage.getItem('anthropic_key')||'';
       if(!userKey){
-        // Hiện dialog nhập API key
-        var inputKey=window.prompt('🤖 Nhập Anthropic API Key để dùng AI\n(Lấy tại: console.anthropic.com/keys)\n\nKey sẽ được lưu trong máy này:');
-        if(!inputKey||!inputKey.trim()){throw new Error('Cần nhập API Key để dùng tính năng AI. Hoặc cập nhật Code.gs và thêm API Key vào Script Properties.');}
-        userKey=inputKey.trim();
-        localStorage.setItem('anthropic_key',userKey);
+        // Hiện modal nhập key đẹp thay vì window.prompt
+        if(btn){btn.disabled=false;btn.textContent='🤖 AI sinh nhận xét';}
+        T('apiBg').classList.add('on');
+        T('api-key-input').value='';
+        T('api-key-err').textContent='';
+        setTimeout(function(){T('api-key-input').focus();},300);
+        return; // Dừng ở đây, saveApiKey() sẽ tự gọi lại hbGenAI
       }
       try{
         var resp=await fetch('https://api.anthropic.com/v1/messages',{
@@ -2324,31 +2365,34 @@ async function hbGenAI(){
             'anthropic-version':'2023-06-01',
             'anthropic-dangerous-request-allowed':'true'
           },
-          body:JSON.stringify({model:'claude-opus-4-6',max_tokens:2000,
-            messages:[{role:'user',content:aiPrompt}]})
+          body:JSON.stringify({
+            model:'claude-opus-4-6',
+            max_tokens:2000,
+            messages:[{role:'user',content:aiPrompt}]
+          })
         });
         var data=await resp.json();
         if(data.error){
-          if(data.error.type==='authentication_error'||data.error.type==='invalid_request_error'){
+          if(data.error.type==='authentication_error'){
             localStorage.removeItem('anthropic_key');
-            throw new Error('API Key không hợp lệ hoặc hết hạn. Nhấn "AI sinh nhận xét" lại để nhập key mới.');
+            // Hiện modal lại để nhập key mới
+            if(btn){btn.disabled=false;btn.textContent='🤖 AI sinh nhận xét';}
+            T('apiBg').classList.add('on');
+            T('api-key-err').textContent='❌ API Key không hợp lệ, vui lòng nhập lại';
+            T('api-key-input').value='';
+            setTimeout(function(){T('api-key-input').focus();},300);
+            return;
           }
           throw new Error(data.error.message||'API error');
         }
         aiResult=data.content&&data.content[0]?data.content[0].text:'';
       }catch(fetchErr){
         if(fetchErr.message.indexOf('Failed to fetch')>=0||fetchErr.message.indexOf('NetworkError')>=0){
-          // Hiện hướng dẫn rõ ràng
-          var msg='⚠️ Trình duyệt chặn kết nối AI trực tiếp.\n\n'+
-            'Để dùng AI, cần cập nhật Code.gs:\n'+
-            '1. Tải file Code.gs mới\n'+
-            '2. Dán vào Apps Script → Lưu\n'+
-            '3. Deploy → Phiên bản mới\n'+
-            '4. Vào Project Settings → Script Properties → thêm:\n'+
-            '   ANTHROPIC_API_KEY = sk-ant-api03-...\n'+
-            '(Lấy tại: console.anthropic.com)';
-          console.warn('Cần cập nhật Code.gs:', msg);
-          throw new Error('Code.gs chưa cập nhật — xem console (F12) để biết cách cài đặt AI');
+          // CORS → không thể gọi trực tiếp từ GitHub Pages
+          if(btn){btn.disabled=false;btn.textContent='🤖 AI sinh nhận xét';}
+          T('apiBg').classList.add('on');
+          T('api-key-err').textContent='⚠️ Trình duyệt chặn kết nối. Cần cập nhật Code.gs để dùng GAS làm proxy.';
+          return;
         }
         throw fetchErr;
       }
@@ -2636,6 +2680,18 @@ async function hbExpClassWord(){
     loader();
     toast('✅ Xuất Word lớp '+lop+': '+hsLop.length+' học sinh','ok');
   }catch(e){loader();toast('❌ Lỗi: '+e.message,'err');console.error(e);}
+}
+
+function saveApiKey(){
+  var key=(T('api-key-input').value||'').trim();
+  var errEl=T('api-key-err');
+  if(!key){errEl.textContent='⚠️ Vui lòng nhập API Key';return;}
+  if(!key.startsWith('sk-')){errEl.textContent='❌ Key không đúng định dạng (phải bắt đầu bằng sk-)';return;}
+  localStorage.setItem('anthropic_key',key);
+  cm('apiBg');
+  toast('✅ Đã lưu API Key — đang tạo nhận xét AI...','ok');
+  // Tự động chạy lại hbGenAI
+  setTimeout(hbGenAI,300);
 }
 
 window.addEventListener('load', function(){
