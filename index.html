@@ -499,7 +499,13 @@ async function syncNow(){
   if(!GAS){toast('⚠️ Chưa có GAS URL — vào Cài đặt ⚙️','warn');return;}
   syncUI('loading');loader('Đang tải điểm từ Google Sheets...');
   try{const r=await gasCall({action:'getGrades'});loader();
-    if(r.ok){grades=r.data||{};merge();updateAll();syncUI('ok');toast('✅ Đồng bộ: '+Object.keys(grades).length+' học sinh','ok');}
+    if(r.ok){
+      const remote=r.data||{};
+      // MERGE: giữ local data, remote ghi đè những gì đã có trên Sheets
+      grades={...grades,...remote};
+      merge();updateAll();syncUI('ok');
+      toast('✅ Đồng bộ: '+Object.keys(remote).length+' bản ghi từ Sheets','ok');
+    }
     else{syncUI('err');toast('❌ '+r.error,'err');}
   }catch(e){loader();syncUI('err');toast('❌ '+e.message,'err');}
 }
@@ -522,7 +528,10 @@ function initApp(){
   T('tb-sub').textContent='Năm học 2025–2026 · TT27/2020/TT-BGDĐT · '+SB.length+' HS · 25 lớp';
   if(!GAS){syncUI('','Chưa kết nối');
     if(CU&&CU.role==='admin')T('diem-banner').innerHTML='<div class="ibox warn" style="margin-bottom:12px"><strong>⚠️ Chưa kết nối Google Sheets</strong><p>Điểm lưu tạm trong trình duyệt. Vào <strong>Cài đặt ⚙️</strong> để nhập GAS URL.</p></div>';
-  }else{syncNow();}
+  }else{
+    // Delay sync để UI render trước, tránh race condition
+    setTimeout(syncNow, 800);
+  }
   // Show/hide diem-ktabs cho teacher
   if(CU&&CU.role==='teacher'){
     const k=parseInt(CU.lop||'1');
@@ -759,7 +768,17 @@ function collectGrade(){
 function closeModal(){T('mBg').classList.remove('show');eIdx=null;}
 T('mBg').addEventListener('click',e=>{if(e.target.id==='mBg')closeModal();});
 
-function saveLocal(){if(eIdx===null)return;const s=SB[eIdx];grades[s.ma]=collectGrade();closeModal();updateAll();toast('💾 Đã lưu tạm — nhớ đồng bộ lên Google Sheets','ok');}
+function saveLocal(){
+  if(eIdx===null)return;
+  const s=SB[eIdx];grades[s.ma]=collectGrade();
+  closeModal();updateAll();
+  // Tự động push lên Sheets nếu có kết nối
+  if(GAS){
+    gasPost({action:'saveGrade',ma:s.ma,grades:grades[s.ma],user:CU?.username||'?'})
+      .then(r=>{if(r.ok)toast('☁️ Đã lưu lên Google Sheets: '+s.ten,'ok');else toast('💾 Lưu tạm (Sheets: '+r.error+')','warn');})
+      .catch(e=>toast('💾 Lưu tạm (offline: '+e.message+')','warn'));
+  }else{toast('💾 Đã lưu tạm trong trình duyệt','ok');}
+}
 async function saveCloud(){
   if(eIdx===null)return;const s=SB[eIdx];
   // Validate điểm
