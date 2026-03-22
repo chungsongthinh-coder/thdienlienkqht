@@ -444,55 +444,51 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
 
 <!-- CÀI ĐẶT -->
 <div class="page ao" id="pg-settings">
-  <div class="tw" style="padding:18px">
-    <h2 style="font-size:15px;margin-bottom:15px;color:var(--pd);font-weight:700">⚙️ Cài đặt kết nối Google Sheets</h2>
-    <div class="ib blue">
-      <strong>📋 Hướng dẫn lấy Web App URL</strong>
-      <ol>
-        <li>Google Sheet → <strong>Extensions → Apps Script</strong> → dán Code.gs mới → Lưu</li>
-        <li>Click <strong>Triển khai → Quản lý triển khai → ✏️ → Phiên bản mới → Triển khai</strong></li>
-        <li>Copy URL dạng: <code>.../macros/s/AKfycb.../exec</code></li>
-      </ol>
-    </div>
-    <div class="ib warn">
-      <strong>⚠️ Bắt buộc: Execute as = Me | Who has access = Anyone</strong>
-      <p>Mỗi lần sửa Code.gs phải Deploy lại phiên bản mới!</p>
-    </div>
-    <div class="cff"><label>Google Apps Script Web App URL</label>
-      <div style="position:relative">
-        <input type="password" id="gas-url" placeholder="https://script.google.com/macros/s/AKfycb.../exec" style="padding-right:90px">
-        <button type="button" onclick="toggleGasVis()" id="gas-vis-btn" style="position:absolute;right:5px;top:50%;transform:translateY(-50%);height:30px;padding:0 10px;background:var(--bd);border:none;border-radius:6px;font-size:11px;cursor:pointer;color:var(--tx2)">👁 Hiện</button>
+  <div class="tw" style="padding:20px">
+    <h2 style="font-size:15px;margin-bottom:5px;color:var(--pd);font-weight:700">⚙️ Cài đặt hệ thống</h2>
+    <p style="font-size:12px;color:var(--tx3);margin-bottom:18px">Kết nối Google Sheets · Đồng bộ dữ liệu · Chia sẻ cho giáo viên</p>
+
+    <!-- Trạng thái kết nối -->
+    <div style="background:var(--p3);border:1.5px solid var(--bd);border-radius:var(--r12);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--tx2);margin-bottom:3px">Trạng thái kết nối Google Sheets</div>
+        <div style="font-size:12px;color:var(--tx3)" id="sett-status">Đang kiểm tra...</div>
       </div>
-      <p>URL dạng .../exec — URL được mã hóa, chỉ admin mới xem được</p>
-    </div>
-    <div class="cff"><label>Spreadsheet ID (Google Sheet)</label>
-      <input type="text" id="ss-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms">
-      <p>Lấy từ URL Sheets: .../spreadsheets/d/<strong>[ID ĐÂY]</strong>/edit</p>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-      <button class="btn bp" onclick="saveSett()">💾 Lưu cài đặt</button>
-      <button class="btn bg" onclick="testConn()">🔌 Kiểm tra kết nối</button>
-      <button class="btn bo" onclick="syncNow()">🔄 Đồng bộ dữ liệu</button>
-      <button class="btn bout" onclick="upStudents()">⬆ Upload HS lên Sheets</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn bg" onclick="testConnSett()">🔌 Kiểm tra kết nối</button>
+        <button class="btn bo" onclick="syncNow()">🔄 Đồng bộ dữ liệu</button>
+        <button class="btn bout" onclick="upStudents()">⬆ Upload HS lên Sheets</button>
+      </div>
     </div>
     <div id="conn-res"></div>
-    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--bd)">
-      <div style="font-size:13px;font-weight:700;color:var(--tx2);margin-bottom:10px">📤 Chia sẻ cho giáo viên (máy mới)</div>
-      <div style="background:#f8f9ff;border:1.5px solid var(--bd2);border-radius:var(--r8);padding:11px 13px;display:flex;align-items:center;gap:9px">
-        <div style="flex:1;font-size:11px;font-family:monospace;color:var(--tx2);word-break:break-all;line-height:1.5" id="gas-display">Chưa có GAS URL — nhập vào ô trên và nhấn Lưu cài đặt</div>
-        <button onclick="copyGAS()" style="flex-shrink:0;height:32px;padding:0 12px;background:var(--p);color:#fff;border:none;border-radius:var(--r8);font-size:12px;font-weight:600;cursor:pointer;margin-right:5px">📋 Copy URL</button>
-        <button onclick="copyShareLink()" style="flex-shrink:0;height:32px;padding:0 12px;background:var(--g);color:#fff;border:none;border-radius:var(--r8);font-size:12px;font-weight:600;cursor:pointer;margin-right:5px">🔗 Link GV</button>
-        <button onclick="showQR()" style="flex-shrink:0;height:32px;padding:0 12px;background:var(--pur);color:#fff;border:none;border-radius:var(--r8);font-size:12px;font-weight:600;cursor:pointer">📱 QR Code</button>
+
+    <!-- Chia sẻ cho GV -->
+    <div style="background:var(--card);border:1.5px solid var(--bd);border-radius:var(--r12);padding:14px 16px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:700;color:var(--tx2);margin-bottom:12px">📤 Chia sẻ cho giáo viên (máy mới)</div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:13px">
+        <button class="btn bp" onclick="copyGAS()" style="flex:1">📋 Copy GAS URL</button>
+        <button class="btn bg" onclick="copyShareLink()" style="flex:1">🔗 Tạo Link GV</button>
+        <button class="btn bpu" onclick="showQR()" style="flex:1">📱 Tạo QR Code</button>
       </div>
-      <div class="ib blue" style="margin-top:10px;margin-bottom:0">
-        <strong>📝 Hướng dẫn cho giáo viên (máy mới)</strong>
-        <p>
-        <strong>Cách 1 — Dễ nhất:</strong> Nhấn nút <span style="color:var(--g)">🔗 Link GV</span> → Gửi link qua Zalo → GV mở link → Máy tự cấu hình<br><br>
-        <strong>Cách 2:</strong> Nhấn <span style="color:var(--p)">📋 Copy URL</span> → Gửi cho GV → GV vào website → Nhập tên/mật khẩu<br><br>
-        <span style="color:var(--gd)">✅ Sau lần đầu, máy GV tự nhớ — không cần làm lại</span>
-        </p>
+      <div style="background:#f8f9fe;border-radius:var(--r8);padding:12px 14px;font-size:12px;color:var(--tx2);line-height:1.9">
+        <strong style="color:var(--pd)">Cách 1 — Dễ nhất (QR Code):</strong><br>
+        Nhấn <strong>📱 Tạo QR Code</strong> → In ra → Dán ở phòng giáo viên → GV quét bằng điện thoại → Máy tự cấu hình<br><br>
+        <strong style="color:var(--pd)">Cách 2 — Gửi qua Zalo:</strong><br>
+        Nhấn <strong>🔗 Tạo Link GV</strong> → Copy link → Gửi vào nhóm Zalo trường → GV click link → Máy tự cấu hình<br><br>
+        <span style="color:var(--gd);font-weight:600">✅ Chỉ cần làm 1 lần duy nhất cho mỗi máy</span>
       </div>
     </div>
+
+    <!-- Cảnh báo bảo mật -->
+    <div class="ib warn">
+      <strong>🔒 Lưu ý bảo mật</strong>
+      <p>GAS URL được nhúng sẵn trong hệ thống — <strong>không cần sửa</strong> trừ khi deploy lại GAS.<br>
+      Khi cần cập nhật GAS URL mới: sửa trực tiếp trong file <code>index.html</code> trên GitHub, tìm dòng <code>var DEFAULT_GAS = '...'</code> và thay URL mới vào.</p>
+    </div>
+
+    <!-- Ẩn input gas-url và ss-id (vẫn cần cho JS nhưng ẩn khỏi UI) -->
+    <input type="hidden" id="gas-url">
+    <input type="hidden" id="ss-id">
   </div>
 </div>
 
@@ -683,7 +679,12 @@ function doLogin(){
   btn.disabled = true;
   btn.textContent = '⏳ Đang đăng nhập...';
 
+  // Ưu tiên: localStorage → DEFAULT_GAS (nhúng trong file)
   GAS = localStorage.getItem('gas_url') || DEFAULT_GAS || '';
+  if(GAS && !localStorage.getItem('gas_url')){
+    // Lưu vào localStorage để dùng lần sau (kể cả máy mới)
+    localStorage.setItem('gas_url', GAS);
+  }
 
   // ── TẦNG 1: Không có GAS → Admin vào ngay ──
   if (!GAS) {
@@ -830,6 +831,13 @@ function initApp(){
   dK(initK, document.querySelectorAll('#diem-kts .kt')[initK-1]);
   hsFil();updS();updP();renderSt();renderTK(0);
   updateGasDisplay();
+  // Cập nhật trạng thái trong trang Cài đặt
+  setTimeout(function(){
+    var st=T('sett-status');
+    if(st) st.innerHTML = GAS ?
+      '<span style="color:var(--gd)">✅ Đã cấu hình · Đang kiểm tra...</span>' :
+      '<span style="color:var(--r)">❌ Chưa có GAS URL — cập nhật file index.html</span>';
+  }, 100);
   if(!GAS){
     sUI('','Chưa kết nối');
     if(CU&&CU.role==='admin') T('diem-ban').innerHTML='<div class="ib warn" style="margin-bottom:10px"><strong>⚠️ Chưa kết nối Google Sheets</strong><p>Vào tab <strong>⚙️ Cài đặt</strong> để nhập GAS URL.</p></div>';
@@ -1529,12 +1537,13 @@ function updateGasDisplay(){
   if(inp&&url&&!inp.value) inp.value=url;
 }
 function saveSett(){
-  GAS=T('gas-url').value.trim();SSID=T('ss-id').value.trim();
-  localStorage.setItem('gas_url',GAS);localStorage.setItem('ss_id',SSID);
+  // GAS URL lấy từ DEFAULT_GAS (nhúng trong file) hoặc localStorage
+  GAS = localStorage.getItem('gas_url') || DEFAULT_GAS || '';
+  SSID = localStorage.getItem('ss_id') || '';
+  if(GAS) localStorage.setItem('gas_url', GAS);
   toast('✅ Đã lưu cài đặt — đang kết nối...','ok');
   updateGasDisplay();
   if(GAS){
-    // Tự động kiểm tra kết nối và sync ngay
     setTimeout(function(){
       testConn();
       syncNow();
@@ -1542,13 +1551,26 @@ function saveSett(){
   }
 }
 function testConn(){
-  if(!GAS){toast('⚠️ Chưa nhập GAS URL','warn');return;}
+  if(!GAS){toast('⚠️ Chưa có GAS URL trong hệ thống','warn');return;}
   loader('Kiểm tra kết nối...');
   gasCall({action:'ping'}).then(function(r){
     loader();
-    T('conn-res').innerHTML=r.ok?'<div class="res ok">✅ Kết nối thành công! V: '+(r.version||'?')+' · '+(r.time||'')+'</div>':'<div class="res err">❌ '+r.error+'</div>';
+    var el=T('conn-res');
+    if(el) el.innerHTML=r.ok?'<div class="res ok">✅ Kết nối thành công! V: '+(r.version||'?')+' · '+(r.time||'')+'</div>':'<div class="res err">❌ '+r.error+'</div>';
+    var st=T('sett-status');
+    if(st) st.innerHTML=r.ok?'<span style="color:var(--gd);font-weight:600">✅ Đã kết nối · V: '+(r.version||'?')+'</span>':'<span style="color:var(--r)">❌ Lỗi kết nối</span>';
     sUI(r.ok?'ok':'err');
-  }).catch(function(e){loader();T('conn-res').innerHTML='<div class="res err">❌ '+e.message+'</div>';sUI('err');});
+  }).catch(function(e){
+    loader();
+    var el=T('conn-res');if(el) el.innerHTML='<div class="res err">❌ '+e.message+'</div>';
+    var st=T('sett-status');if(st) st.innerHTML='<span style="color:var(--r)">❌ '+e.message+'</span>';
+    sUI('err');
+  });
+}
+function testConnSett(){
+  var st=T('sett-status');
+  if(st) st.textContent='Đang kiểm tra...';
+  testConn();
 }
 function upStudents(){
   if(!GAS){toast('⚠️ Chưa có GAS URL','warn');return;}
