@@ -701,8 +701,8 @@ function renderDiemTable(){
   if(!tot){tb.innerHTML='<tr><td colspan="10"><div class="empty"><div class="eico">📋</div><p>Không có học sinh</p></div></td></tr>';return;}
   tb.innerHTML=rows.map(s=>{
     const gi=STUDENTS_BASE.findIndex(b=>b.ma===s.ma),g=grades[s.ma]||{};
-    const toan=g['mon_Toán']?`<span class="bl ${mucCls(g['mon_Toán'])}">${g['mon_Toán']}</span>${g['diem_Toán']?'<br><small>'+g['diem_Toán']+'đ</small>':'`:'<span style="color:#ccc">—</span>';
-    const tv=g['mon_Tiếng_việt']?`<span class="bl ${mucCls(g['mon_Tiếng_việt'])}">${g['mon_Tiếng_việt']}</span>${g['diem_Tiếng_việt']?'<br><small>'+g['diem_Tiếng_việt']+'đ</small>':'`:'<span style="color:#ccc">—</span>';
+    const toan=g['mon_Toán']?('<span class="bl '+mucCls(g['mon_Toán'])+'">'+g['mon_Toán']+'</span>'+(g['diem_Toán']?'<br><small>'+g['diem_Toán']+'đ</small>':'')):'<span style="color:#ccc">—</span>';
+    const tv=g['mon_Tiếng_việt']?('<span class="bl '+mucCls(g['mon_Tiếng_việt'])+'">'+g['mon_Tiếng_việt']+'</span>'+(g['diem_Tiếng_việt']?'<br><small>'+g['diem_Tiếng_việt']+'đ</small>':'')):'<span style="color:#ccc">—</span>';
     const dd=blHtml(g['mon_Đạo_đức']);const nl=nlpcCount(s,NL_LIST);const pc=nlpcCount(s,PC_LIST);
     const ht=blHtml(g.hoan_thanh,g.hoan_thanh==='HT'?'bl-ht':g.hoan_thanh?'bl-cht':'');
     const xl=blHtml(g.xep_loai,g.xep_loai==='Xuất sắc'?'bl-xs':g.xep_loai==='Tiêu biểu'?'bl-tb':'');
