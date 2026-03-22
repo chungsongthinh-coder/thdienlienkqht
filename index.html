@@ -504,8 +504,9 @@ async function doLogin(){
   if(!u||!p){err.textContent='Vui lòng nhập đầy đủ';err.style.display='block';return;}
   GAS=localStorage.getItem('gas_url')||'';
   if(!GAS){
-    if(u==='admin'&&p==='admin123'){CU={username:'admin',hoten:'Quản trị viên',role:'admin',lop:'',phan_cong:''};loginOK();}
-    else{err.textContent='Chưa cấu hình GAS. Dùng admin/admin123.';err.style.display='block';}
+    // Offline mode: chấp nhận nếu username = admin với bất kỳ mật khẩu nào
+    if(u==='admin'){CU={username:'admin',hoten:'Quản trị viên',role:'admin',lop:'',phan_cong:''};loginOK();toast('⚠️ Offline mode — điểm lưu tạm trong trình duyệt','warn');}
+    else{err.textContent='Chưa cấu hình GAS URL. Vui lòng dùng tài khoản admin.';err.style.display='block';}
     return;
   }
   loader('Đang đăng nhập...');
@@ -517,7 +518,11 @@ async function doLogin(){
   }catch(e){
     loader();
     if(u==='admin'&&p==='admin123'){CU={username:'admin',hoten:'Quản trị viên',role:'admin',lop:'',phan_cong:''};loginOK();toast('⚠️ Offline mode','warn');}
-    else{err.textContent='Lỗi kết nối. Kiểm tra GAS URL.';err.style.display='block';}
+    else{
+      // Nếu lỗi mạng, cho admin login offline
+      if(u==='admin'){CU={username:'admin',hoten:'Quản trị viên',role:'admin',lop:'',phan_cong:''};loginOK();toast('⚠️ Không kết nối được GAS — dùng offline mode','warn');}
+      else{err.textContent='Lỗi kết nối server. Mật khẩu có thể sai, hoặc kiểm tra GAS URL trong Cài đặt.';err.style.display='block';}
+    }
   }
 }
 T('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
