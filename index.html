@@ -2239,7 +2239,7 @@ async function hbGenAI(){
   else if(kq==='HTT')khenText='- Đạt danh hiệu Học sinh Tiêu biểu hoàn thành tốt';
   var nextCl=HBS.khoi>=5?'Hoàn thành chương trình lớp 5; Hoàn thành chương trình tiểu học.':'Hoàn thành chương trình lớp '+HBS.khoi+'; Được lên lớp '+(HBS.khoi+1)+'.';
 
-  var prompt='Bạn là giáo viên tiểu học Việt Nam viết nhận xét học bạ theo TT27/2020.\n'+
+  var aiPrompt='Bạn là giáo viên tiểu học Việt Nam viết nhận xét học bạ theo TT27/2020.\n'+
     'HS: '+HBS.ten+' | Giới tính: '+gt+' | Lớp '+HBS.lop+' | Năm học '+HBY+'\n'+
     'Môn học: '+monLines+'\nPhẩm chất: '+pcLines+'\nNL chung: '+nlcLines+'\nNL đặc thù: '+nldLines+'\n'+
     'Kết quả: '+(HB_KQL[kq]||'Hoàn thành')+'\n\n'+
@@ -2257,7 +2257,7 @@ async function hbGenAI(){
     var gasOk = false;
     if(GAS){
       try{
-        var gasRes=await gasPost({action:'aiChat',prompt:prompt});
+        var gasRes=await gasPost({action:'aiChat',prompt:aiPrompt});
         if(gasRes.ok){aiResult=gasRes.text||'';gasOk=true;}
         else if(gasRes.error&&gasRes.error.indexOf('Unknown POST action')>=0){
           // Code.gs chưa có aiChat → báo user update
@@ -2278,7 +2278,7 @@ async function hbGenAI(){
       var userKey=localStorage.getItem('anthropic_key')||'';
       if(!userKey){
         // Hiện dialog nhập API key
-        var inputKey=prompt('🤖 Nhập Anthropic API Key để dùng AI\n(Lấy tại: console.anthropic.com/keys)\n\nKey sẽ được lưu trong máy này:');
+        var inputKey=window.prompt('🤖 Nhập Anthropic API Key để dùng AI\n(Lấy tại: console.anthropic.com/keys)\n\nKey sẽ được lưu trong máy này:');
         if(!inputKey||!inputKey.trim()){throw new Error('Cần nhập API Key để dùng tính năng AI. Hoặc cập nhật Code.gs và thêm API Key vào Script Properties.');}
         userKey=inputKey.trim();
         localStorage.setItem('anthropic_key',userKey);
@@ -2293,7 +2293,7 @@ async function hbGenAI(){
             'anthropic-dangerous-request-allowed':'true'
           },
           body:JSON.stringify({model:'claude-opus-4-6',max_tokens:2000,
-            messages:[{role:'user',content:prompt}]})
+            messages:[{role:'user',content:aiPrompt}]})
         });
         var data=await resp.json();
         if(data.error){
