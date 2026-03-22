@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Quản lý Điểm & KQHT Tiểu học — V4</title>
+<title>Quản lý Chất lượng GDTH</title>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Lexend:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -318,7 +318,7 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
 <div class="topbar"><div class="tbi">
   <div class="tb-logo">🏫</div>
   <div class="tb-info">
-    <h1 id="tb-name">TH Diễn Liên — Quản lý Điểm &amp; KQHT</h1>
+    <h1 id="tb-name">TH Diễn Liên — Quản lý Chất lượng GDTH</h1>
     <p id="tb-sub">Năm học 2025–2026 · TT27/2020/TT-BGDĐT</p>
   </div>
   <div class="pill" id="sync-pill" onclick="syncNow()"><div class="sdot" id="sdot"></div><span id="slbl">Chưa kết nối</span></div>
@@ -515,6 +515,7 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
         <button class="btn bg" onclick="testConnSett()">🔌 Kiểm tra kết nối</button>
         <button class="btn bo" onclick="syncNow()">🔄 Đồng bộ dữ liệu</button>
         <button class="btn bout" onclick="upStudents()">⬆ Upload HS lên Sheets</button>
+      <button class="btn bout" onclick="(function(){localStorage.removeItem('anthropic_key');toast('Đã xóa API Key AI','ok');})()" title="Xóa Anthropic API Key đã lưu">🔑 Xóa AI Key</button>
       </div>
     </div>
     <div id="conn-res"></div>
@@ -962,7 +963,7 @@ function initApp(){
   if(T('gas-url')) T('gas-url').value = GAS;
   if(T('ss-id')) T('ss-id').value = SSID;
   // Thông tin trường
-  var sn = localStorage.getItem('school_name_s')||'TH Diễn Liên — Quản lý Điểm & KQHT';
+  var sn = localStorage.getItem('school_name_s')||'TH Diễn Liên — Quản lý Chất lượng GDTH';
   var sa = localStorage.getItem('school_addr')||'Xã Quảng Châu · Tỉnh Nghệ An';
   var yr = localStorage.getItem('school_year')||'2025–2026';
   T('tb-name').textContent = sn;
@@ -1477,10 +1478,10 @@ function resetImport(){importData=[];T('imp-preview').innerHTML='';T('imp-step3'
 // ═══ THÔNG TIN TRƯỜNG ═══
 function saveSchoolInfo(){
   var name=T('imp-school').value.trim(),addr=T('imp-addr').value.trim(),year=T('imp-year').value.trim();
-  if(name){localStorage.setItem('school_name_full',name);localStorage.setItem('school_name_s',name+' — Quản lý Điểm & KQHT');}
+  if(name){localStorage.setItem('school_name_full',name);localStorage.setItem('school_name_s',name+' — Quản lý Chất lượng GDTH');}
   if(addr) localStorage.setItem('school_addr',addr);
   if(year) localStorage.setItem('school_year',year);
-  T('tb-name').textContent=localStorage.getItem('school_name_s')||'TH Diễn Liên — Quản lý Điểm & KQHT';
+  T('tb-name').textContent=localStorage.getItem('school_name_s')||'TH Diễn Liên — Quản lý Chất lượng GDTH';
   T('tb-sub').textContent='Năm học '+(year||'2025–2026')+' · TT27/2020/TT-BGDĐT · '+SB.length+' HS';
   T('school-name-l').textContent=name||'Trường Tiểu học Diễn Liên';
   T('school-addr-l').textContent=addr||'Xã Quảng Châu · Tỉnh Nghệ An';
@@ -2252,7 +2253,10 @@ async function hbGenAI(){
         if(gasRes.ok){aiResult=gasRes.text||'';gasOk=true;}
         else if(gasRes.error&&gasRes.error.indexOf('Unknown POST action')>=0){
           // Code.gs chưa có aiChat → báo user update
-          throw new Error('Code.gs chưa được cập nhật. Hãy dán Code.gs mới vào Apps Script và Deploy lại!');
+          var errMsg = '⚠️ Cần cập nhật Code.gs:\n1. Tải file Code.gs mới\n2. Dán vào Apps Script → Lưu\n3. Deploy → Phiên bản mới\n4. Vào Project Settings → Script Properties → thêm:\n   ANTHROPIC_API_KEY = sk-ant-api03-...\n(Lấy tại: console.anthropic.com)';
+          toast('❌ Code.gs chưa có tính năng AI. Xem console để biết cách cài đặt.','err');
+          console.error(errMsg);
+          throw new Error('Code.gs chưa cập nhật — xem console (F12) để biết cách cài đặt AI');
         } else {
           throw new Error(gasRes.error||'GAS AI error');
         }
@@ -2263,20 +2267,42 @@ async function hbGenAI(){
       }
     }
     if(!gasOk){
-      // Direct call (hoạt động khi chạy trong Claude artifact hoặc localhost)
-      var resp=await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'anthropic-dangerous-request-allowed':'true'
-        },
-        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,
-          messages:[{role:'user',content:prompt}]})
-      });
-      if(!resp.ok) throw new Error('Lỗi kết nối AI ('+resp.status+'). Hãy cập nhật Code.gs và thêm API Key.');
-      var data=await resp.json();
-      if(data.error)throw new Error(data.error.message||'API error');
-      aiResult=data.content&&data.content[0]?data.content[0].text:'';
+      // Thử dùng API key được lưu trong settings
+      var userKey=localStorage.getItem('anthropic_key')||'';
+      if(!userKey){
+        // Hiện dialog nhập API key
+        var inputKey=prompt('🤖 Nhập Anthropic API Key để dùng AI\n(Lấy tại: console.anthropic.com/keys)\n\nKey sẽ được lưu trong máy này:');
+        if(!inputKey||!inputKey.trim()){throw new Error('Cần nhập API Key để dùng tính năng AI. Hoặc cập nhật Code.gs và thêm API Key vào Script Properties.');}
+        userKey=inputKey.trim();
+        localStorage.setItem('anthropic_key',userKey);
+      }
+      try{
+        var resp=await fetch('https://api.anthropic.com/v1/messages',{
+          method:'POST',
+          headers:{
+            'Content-Type':'application/json',
+            'x-api-key':userKey,
+            'anthropic-version':'2023-06-01',
+            'anthropic-dangerous-request-allowed':'true'
+          },
+          body:JSON.stringify({model:'claude-opus-4-6',max_tokens:2000,
+            messages:[{role:'user',content:prompt}]})
+        });
+        var data=await resp.json();
+        if(data.error){
+          if(data.error.type==='authentication_error'){
+            localStorage.removeItem('anthropic_key');
+            throw new Error('API Key không hợp lệ. Vui lòng thử lại.');
+          }
+          throw new Error(data.error.message||'API error');
+        }
+        aiResult=data.content&&data.content[0]?data.content[0].text:'';
+      }catch(fetchErr){
+        if(fetchErr.message.indexOf('Failed to fetch')>=0||fetchErr.message.indexOf('NetworkError')>=0){
+          throw new Error('Trình duyệt chặn kết nối AI trực tiếp (CORS). Giải pháp: Cập nhật Code.gs mới → Deploy → Thêm ANTHROPIC_API_KEY vào Script Properties.');
+        }
+        throw fetchErr;
+      }
     }
     var text=aiResult;
     text=text.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
