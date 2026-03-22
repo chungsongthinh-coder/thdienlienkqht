@@ -1879,7 +1879,8 @@ function renderHBContent(){
   }
   function makeTA(key, aiClass){
     var val=getNX(key,'');
-    return '<textarea id="hb-'+key+'" class="'+(val&&aiClass?'ai-gen':'')+'" onchange="hbEdit(''+key+'',this.value)">'+val+'</textarea>';
+    var cls=val&&aiClass?'ai-gen':'';
+    return '<textarea id="hb-'+key+'" data-key="'+key+'" class="'+cls+'" oninput="hbEdit(this.dataset.key,this.value)">'+val+'</textarea>';
   }
   function monId(n){ return n.replace(/\s+/g,'_').replace(/[()\/]/g,''); }
 
@@ -1895,10 +1896,10 @@ function renderHBContent(){
   h+='<span>Năm học: <strong>'+HBY+'</strong></span>';
   h+='</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;padding:10px 14px">';
-  h+='<div class="hb-final"><div class="fl"><label>Chiều cao (cm)</label><textarea id="hb-chieucao" rows="1" onchange="hbEdit('chieucao',this.value)">'+getNX('chieucao','')+'</textarea></div></div>';
-  h+='<div class="hb-final"><div class="fl"><label>Cân nặng (kg)</label><textarea id="hb-cannang" rows="1" onchange="hbEdit('cannang',this.value)">'+getNX('cannang','')+'</textarea></div></div>';
-  h+='<div class="hb-final"><div class="fl"><label>Số ngày nghỉ có phép</label><textarea id="hb-nghinphep" rows="1" onchange="hbEdit('nghinphep',this.value)">'+getNX('nghinphep','0')+'</textarea></div></div>';
-  h+='<div class="hb-final"><div class="fl"><label>Số ngày nghỉ không phép</label><textarea id="hb-nghikphep" rows="1" onchange="hbEdit('nghikphep',this.value)">'+getNX('nghikphep','0')+'</textarea></div></div>';
+  h+='<div class="hb-final"><div class="fl"><label>Chiều cao (cm)</label><textarea id="hb-chieucao" rows="1" data-key="chieucao" oninput="hbEdit(this.dataset.key,this.value)">'+getNX('chieucao','')+'</textarea></div></div>';
+  h+='<div class="hb-final"><div class="fl"><label>Cân nặng (kg)</label><textarea id="hb-cannang" rows="1" data-key="cannang" oninput="hbEdit(this.dataset.key,this.value)">'+getNX('cannang','')+'</textarea></div></div>';
+  h+='<div class="hb-final"><div class="fl"><label>Số ngày nghỉ có phép</label><textarea id="hb-nghinphep" rows="1" data-key="nghinphep" oninput="hbEdit(this.dataset.key,this.value)">'+getNX('nghinphep','0')+'</textarea></div></div>';
+  h+='<div class="hb-final"><div class="fl"><label>Số ngày nghỉ không phép</label><textarea id="hb-nghikphep" rows="1" data-key="nghikphep" oninput="hbEdit(this.dataset.key,this.value)">'+getNX('nghikphep','0')+'</textarea></div></div>';
   h+='</div></div>';
 
   // 1. Môn học
@@ -1960,19 +1961,19 @@ function renderHBContent(){
   h+='<div class="hb-sect"><div class="hb-sect-h">🎓 Tổng kết cuối năm</div>';
   h+='<div class="hb-final">';
   h+='<div class="fl"><label>4. Đánh giá kết quả giáo dục</label>';
-  h+='<textarea id="hb-kqgd" rows="1" class="'+(getNX('kqgd','')?'ai-gen':'')+'" onchange="hbEdit('kqgd',this.value)">'+getNX('kqgd',kqText)+'</textarea></div>';
+  h+='<textarea id="hb-kqgd" rows="1" class="'+(getNX('kqgd','')?'ai-gen':'')+'" data-key="kqgd" oninput="hbEdit(this.dataset.key,this.value)">'+getNX('kqgd',kqText)+'</textarea></div>';
   h+='<div class="fl"><label>5. Khen thưởng</label>';
-  h+='<textarea id="hb-khen" rows="2" class="'+(getNX('khen','')?'ai-gen':'')+'" onchange="hbEdit('khen',this.value)">'+getNX('khen','')+'</textarea></div>';
+  h+='<textarea id="hb-khen" rows="2" class="'+(getNX('khen','')?'ai-gen':'')+'" data-key="khen" oninput="hbEdit(this.dataset.key,this.value)">'+getNX('khen','')+'</textarea></div>';
   h+='<div class="fl"><label>6. Hoàn thành chương trình lớp học / chương trình tiểu học</label>';
-  h+='<textarea id="hb-hoanthanh" rows="2" class="'+(getNX('hoanthanh','')?'ai-gen':'')+'" onchange="hbEdit('hoanthanh',this.value)">'+getNX('hoanthanh','')+'</textarea></div>';
+  h+='<textarea id="hb-hoanthanh" rows="2" class="'+(getNX('hoanthanh','')?'ai-gen':'')+'" data-key="hoanthanh" oninput="hbEdit(this.dataset.key,this.value)">'+getNX('hoanthanh','')+'</textarea></div>';
   h+='</div>';
 
   // Chữ ký
   h+='<div class="hb-sig">';
   h+='<div class="hb-sig-box"><strong>Xác nhận của Hiệu trưởng</strong><em>(Ký, ghi rõ họ tên và đóng dấu)</em>';
-  h+='<div class="hb-final" style="padding:0;margin-top:8px"><div class="fl"><textarea id="hb-ht-name" rows="1" onchange="hbEdit('ht_name',this.value)" style="text-align:center" placeholder="Tên hiệu trưởng">'+getNX('ht_name',localStorage.getItem('school_ht')||'')+'</textarea></div></div></div>';
+  h+='<div class="hb-final" style="padding:0;margin-top:8px"><div class="fl"><textarea id="hb-ht-name" rows="1" data-key="ht_name" oninput="hbEdit(this.dataset.key,this.value)" style="text-align:center" placeholder="Tên hiệu trưởng">'+getNX('ht_name',localStorage.getItem('school_ht')||'')+'</textarea></div></div></div>';
   h+='<div class="hb-sig-box"><strong>Giáo viên chủ nhiệm</strong><em>(Ký và ghi rõ họ tên)</em>';
-  h+='<div class="hb-final" style="padding:0;margin-top:8px"><div class="fl"><textarea id="hb-gvcn-name" rows="1" onchange="hbEdit('gvcn_name',this.value)" style="text-align:center" placeholder="Tên giáo viên">'+getNX('gvcn_name', (CU&&CU.role==='teacher'?CU.hoten:''))+'</textarea></div></div></div>';
+  h+='<div class="hb-final" style="padding:0;margin-top:8px"><div class="fl"><textarea id="hb-gvcn-name" rows="1" data-key="gvcn_name" oninput="hbEdit(this.dataset.key,this.value)" style="text-align:center" placeholder="Tên giáo viên">'+getNX('gvcn_name', (CU&&CU.role==='teacher'?CU.hoten:''))+'</textarea></div></div></div>';
   h+='</div>';
   h+='</div>';
 
