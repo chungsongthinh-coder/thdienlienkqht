@@ -253,13 +253,7 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
   <button class="lbtn" id="lbtn" onclick="doLogin()">🔐 Đăng nhập</button>
   <div class="lmode" id="lmode"></div>
   <div class="lnote">💡 Tài khoản mặc định: <strong>admin / admin123</strong><br>Liên hệ quản trị viên nếu quên mật khẩu</div>
-  <div id="gas-sa" style="display:none;margin-top:10px;border:1.5px solid #ffe082;border-radius:8px;padding:10px;background:#fef9e7">
-    <div style="font-size:11px;font-weight:700;color:#7d5a00;margin-bottom:6px">🔗 Nhập GAS URL để kết nối:</div>
-    <input type="text" id="gas-url-l" style="width:100%;height:36px;border:1.5px solid #ffe082;border-radius:7px;padding:0 9px;font-size:11px;font-family:monospace;outline:none;margin-bottom:6px;background:#fafbfd" placeholder="https://script.google.com/macros/s/AKfycb.../exec">
-    <button onclick="saveGasRetry()" style="width:100%;height:34px;background:#1456b0;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer">💾 Lưu và đăng nhập lại</button>
-    <div style="font-size:10px;color:#999;margin-top:4px">Hỏi admin để lấy GAS URL</div>
-  </div>
-  <button class="sos-btn" onclick="showGSA()">⚙️ Máy chưa cấu hình? Nhấn đây để nhập GAS URL</button>
+
 </div>
 </div>
 
@@ -482,16 +476,17 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
     <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--bd)">
       <div style="font-size:13px;font-weight:700;color:var(--tx2);margin-bottom:10px">📤 Chia sẻ GAS URL cho giáo viên</div>
       <div style="background:#f8f9ff;border:1.5px solid var(--bd2);border-radius:var(--r8);padding:11px 13px;display:flex;align-items:center;gap:9px">
-        <div style="flex:1;font-size:11.5px;font-family:monospace;color:var(--tx2);word-break:break-all" id="gas-display">Chưa có GAS URL</div>
-        <button onclick="copyGAS()" style="flex-shrink:0;height:32px;padding:0 12px;background:var(--p);color:#fff;border:none;border-radius:var(--r8);font-size:12px;font-weight:600;cursor:pointer">📋 Copy</button>
+        <div style="flex:1;font-size:11px;font-family:monospace;color:var(--tx2);word-break:break-all;line-height:1.5" id="gas-display">Chưa có GAS URL — nhập vào ô trên và nhấn Lưu cài đặt</div>
+        <button onclick="copyGAS()" style="flex-shrink:0;height:32px;padding:0 12px;background:var(--p);color:#fff;border:none;border-radius:var(--r8);font-size:12px;font-weight:600;cursor:pointer;margin-right:5px">📋 Copy URL</button>
+        <button onclick="copyShareLink()" style="flex-shrink:0;height:32px;padding:0 12px;background:var(--g);color:#fff;border:none;border-radius:var(--r8);font-size:12px;font-weight:600;cursor:pointer">🔗 Link GV</button>
       </div>
       <div class="ib blue" style="margin-top:10px;margin-bottom:0">
         <strong>📝 Hướng dẫn cho giáo viên (máy mới)</strong>
-        <p>1. Mở website → Thấy màn hình đăng nhập<br>
-        2. Nhấn nút <strong>"⚙️ Máy chưa cấu hình?"</strong> ở cuối trang<br>
-        3. Dán GAS URL (admin cung cấp) → Nhấn <strong>Lưu và đăng nhập lại</strong><br>
-        4. Nhập đúng tên đăng nhập và mật khẩu → Vào hệ thống<br>
-        <span style="color:var(--gd)">✅ Từ lần sau máy đó tự nhớ, không cần nhập lại GAS URL</span></p>
+        <p>
+        <strong>Cách 1 — Dễ nhất:</strong> Nhấn nút <span style="color:var(--g)">🔗 Link GV</span> → Gửi link qua Zalo → GV mở link → Máy tự cấu hình<br><br>
+        <strong>Cách 2:</strong> Nhấn <span style="color:var(--p)">📋 Copy URL</span> → Gửi cho GV → GV vào website → Nhập tên/mật khẩu<br><br>
+        <span style="color:var(--gd)">✅ Sau lần đầu, máy GV tự nhớ — không cần làm lại</span>
+        </p>
       </div>
     </div>
   </div>
@@ -673,9 +668,8 @@ function doLogin(){
       T('lmode').textContent = '⚠️ Offline — vào Cài đặt để kết nối Sheets';
       loginOK();
     } else {
-      err.textContent = 'Chưa cấu hình GAS URL. Nhấn nút phía dưới để nhập GAS URL.';
+      err.textContent = 'Hệ thống chưa được cấu hình trên máy này. Liên hệ admin để được hỗ trợ.';
       err.style.display = 'block';
-      var gsa=T('gas-sa');if(gsa) gsa.style.display='block';
     }
     return;
   }
@@ -745,6 +739,8 @@ T('lp').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 T('lu').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 
 function loginOK(){
+  // Lưu GAS URL vào localStorage (quan trọng cho các lần sau)
+  if(GAS) localStorage.setItem('gas_url', GAS);
   T('login-screen').style.display = 'none';
   T('app-screen').style.display = 'block';
   if (CU.role==='admin') { userPerm=null; }
@@ -1200,7 +1196,11 @@ function openUM(idx){
 function saveUser(){
   var uname=T('uf-u').value.trim(),hoten=T('uf-ht').value.trim();
   if(!uname||!hoten){T('uErr').textContent='⚠️ Tên đăng nhập và họ tên là bắt buộc';return;}
-  if(!GAS){T('uErr').textContent='⚠️ Chưa có GAS URL';return;}
+  if(!GAS){
+    T('uErr').textContent='⚠️ Chưa kết nối Google Sheets. Vào Cài đặt ⚙️ để nhập GAS URL trước.';
+    T('uErr').style.color='var(--o)';
+    return;
+  }
   loader('Đang lưu...');
   gasPost({action:'saveUser',username:uname,password:T('uf-p').value.trim(),hoten:hoten,role:T('uf-r').value,lop_phu_trach:T('uf-lop').value.trim(),phan_cong_giang_day:T('uf-pc').value.trim(),ghi_chu:T('uf-gc').value.trim()})
     .then(function(r){loader();if(r.ok){cm('uBg');toast('✅ '+r.message,'ok');loadUsers();}else T('uErr').textContent='❌ '+r.error;})
@@ -1413,6 +1413,22 @@ function expTKXL(){
 }
 
 // ═══ CÀI ĐẶT ═══
+function copyShareLink(){
+  var url = localStorage.getItem('gas_url') || DEFAULT_GAS || '';
+  if(!url){toast('⚠️ Chưa có GAS URL — lưu cài đặt trước','warn');return;}
+  // Tạo link có GAS URL embedded → GV click vào sẽ tự cấu hình
+  var siteUrl = window.location.href.split('?')[0];
+  var shareLink = siteUrl + '?gas=' + encodeURIComponent(url);
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(shareLink).then(function(){
+      toast('🔗 Đã copy link! Gửi link này cho giáo viên — khi họ mở link, máy tự cấu hình!','ok');
+    });
+  } else {
+    var ta=document.createElement('textarea');ta.value=shareLink;document.body.appendChild(ta);
+    ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    toast('🔗 Đã copy link chia sẻ!','ok');
+  }
+}
 function copyGAS(){
   var url = localStorage.getItem('gas_url') || DEFAULT_GAS || '';
   if(!url){toast('⚠️ Chưa có GAS URL — vào Cài đặt để nhập trước','warn');return;}
@@ -1435,7 +1451,15 @@ function updateGasDisplay(){
 function saveSett(){
   GAS=T('gas-url').value.trim();SSID=T('ss-id').value.trim();
   localStorage.setItem('gas_url',GAS);localStorage.setItem('ss_id',SSID);
-  toast('✅ Đã lưu cài đặt','ok');updateGasDisplay();if(GAS) syncNow();
+  toast('✅ Đã lưu cài đặt — đang kết nối...','ok');
+  updateGasDisplay();
+  if(GAS){
+    // Tự động kiểm tra kết nối và sync ngay
+    setTimeout(function(){
+      testConn();
+      syncNow();
+    }, 300);
+  }
 }
 function testConn(){
   if(!GAS){toast('⚠️ Chưa nhập GAS URL','warn');return;}
@@ -1461,6 +1485,19 @@ function upStudents(){
 
 // ═══ AUTO LOGIN ═══
 window.addEventListener('load', function(){
+  // Kiểm tra URL parameter ?gas=... để tự động cấu hình máy mới
+  var urlParams = new URLSearchParams(window.location.search);
+  var gasParam = urlParams.get('gas');
+  if(gasParam && gasParam.indexOf('script.google.com')>=0){
+    localStorage.setItem('gas_url', gasParam);
+    DEFAULT_GAS = gasParam;
+    GAS = gasParam;
+    // Xóa param khỏi URL (gọn hơn)
+    var cleanUrl = window.location.href.split('?')[0];
+    window.history.replaceState({}, document.title, cleanUrl);
+    toast('✅ Đã tự động cấu hình GAS URL cho máy này!','ok');
+  }
+
   var cu = localStorage.getItem('_cu');
   if (cu) {
     try {
