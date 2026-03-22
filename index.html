@@ -1143,7 +1143,8 @@ function renderU(){
   T('u-tb').innerHTML=allUsers.map(function(u,i){
     var rb=u.role==='admin'?'<span class="bl bl-adm">Admin</span>':'<span class="bl bl-tcr">GV</span>';
     var pc=(u.phan_cong_giang_day||'').substring(0,55)+((u.phan_cong_giang_day||'').length>55?'...':'');
-    return '<tr><td style="color:var(--tx3);font-size:11px">'+(i+1)+'</td><td><strong style="font-family:monospace">'+u.username+'</strong></td><td>'+u.hoten+'</td><td>'+rb+'</td><td>'+(u.lop_phu_trach||'—')+'</td><td style="font-size:11px;color:var(--tx3);">'+(pc||'—')+'</td><td style="font-size:11px;color:var(--tx3);">'+(u.ghi_chu||'—')+'</td><td class="c"><button class="abtn ae" onclick="openUM('+i+')" style="margin-right:3px">✏️</button>'+(u.username!=='admin'?'<button class="abtn ad" onclick="delU(''+u.username+'')">🗑</button>':'')+'</td></tr>';
+    var delBtn=u.username!=='admin'?'<button class="abtn ad" onclick="delU(this)" data-u="'+u.username+'">🗑</button>':'';
+    return '<tr><td style="color:var(--tx3);font-size:11px">'+(i+1)+'</td><td><strong style="font-family:monospace">'+u.username+'</strong></td><td>'+u.hoten+'</td><td>'+rb+'</td><td>'+(u.lop_phu_trach||'—')+'</td><td style="font-size:11px;color:var(--tx3);">'+(pc||'—')+'</td><td style="font-size:11px;color:var(--tx3);">'+(u.ghi_chu||'—')+'</td><td class="c"><button class="abtn ae" onclick="openUM('+i+')" style="margin-right:3px">✏️</button>'+delBtn+'</td></tr>';
   }).join('');
 }
 function openUM(idx){
@@ -1163,7 +1164,9 @@ function saveUser(){
     .then(function(r){loader();if(r.ok){cm('uBg');toast('✅ '+r.message,'ok');loadUsers();}else T('uErr').textContent='❌ '+r.error;})
     .catch(function(e){loader();T('uErr').textContent='❌ '+e.message;});
 }
-function delU(uname){
+function delU(el){
+  var uname=typeof el==='string'?el:el.getAttribute('data-u');
+  if(!uname){toast('❌ Không tìm thấy tên đăng nhập','err');return;}
   if(!confirm('Xóa tài khoản "'+uname+'"?')) return;
   loader('Đang xóa...');
   gasPost({action:'deleteUser',username:uname})
