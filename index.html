@@ -271,6 +271,11 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
   <button class="lbtn" id="lbtn" onclick="doLogin()">🔐 Đăng nhập</button>
   <div class="lmode" id="lmode"></div>
   <div class="lnote">💡 Tài khoản mặc định: <strong>admin / admin123</strong><br>Liên hệ quản trị viên nếu quên mật khẩu</div>
+  <div style="margin-top:12px;text-align:center">
+    <button onclick="forceAdminLogin()" style="background:none;border:1px solid #ddd;border-radius:8px;padding:6px 14px;font-size:11px;color:#888;cursor:pointer;width:100%">
+      🔧 Vẫn không vào được? Nhấn đây để vào chế độ offline
+    </button>
+  </div>
 </div>
 </div>
 
@@ -431,7 +436,7 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
         Ngày sinh định dạng: <code>dd/mm/yyyy</code> · Giới tính: <code>Nam</code> hoặc <code>Nữ</code><br>
         Không cần header (hoặc có header dòng đầu — hệ thống tự nhận dạng)</p>
       </div>
-      <div class="drop-zone" id="drop-zone" onclick="T('file-inp').click()" ondragover="ev.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="onDrop(event)">
+      <div class="drop-zone" id="drop-zone" onclick="T('file-inp').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="onDrop(event)">
         <div class="di">📂</div>
         <p><strong>Nhấn để chọn file</strong> hoặc kéo thả vào đây</p>
         <div class="sub">.xlsx, .xls, .csv — tối đa 5MB</div>
@@ -622,6 +627,19 @@ async function gasPost(d){
 //  LOGIN — SIÊU ROBUST V4
 //  Luôn cho admin login kể cả khi GAS lỗi
 // ──────────────────────────────────────────
+function forceAdminLogin(){
+  // Xóa GAS URL để vào offline mode
+  localStorage.removeItem('gas_url');
+  localStorage.removeItem('_cu');
+  GAS = '';
+  const u = document.getElementById('lu').value.trim().toLowerCase() || 'admin';
+  const p = document.getElementById('lp').value.trim() || 'offline';
+  if(u === 'admin' || confirm('Xác nhận vào chế độ offline với tài khoản admin?')){
+    CU = {username:'admin', hoten:'Quản trị viên', role:'admin', lop:'', phan_cong:''};
+    document.getElementById('lmode').innerHTML = '<span>⚠️ Đang dùng chế độ offline — vào Cài đặt để kết nối Sheets</span>';
+    loginOK();
+  }
+}
 async function doLogin(){
   const u=T('lu').value.trim().toLowerCase();
   const p=T('lp').value.trim();
