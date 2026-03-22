@@ -253,7 +253,13 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
   <button class="lbtn" id="lbtn" onclick="doLogin()">🔐 Đăng nhập</button>
   <div class="lmode" id="lmode"></div>
   <div class="lnote">💡 Tài khoản mặc định: <strong>admin / admin123</strong><br>Liên hệ quản trị viên nếu quên mật khẩu</div>
-  <button class="sos-btn" onclick="sosLogin()">🔧 Không vào được? Nhấn đây để vào chế độ offline</button>
+  <div id="gas-sa" style="display:none;margin-top:10px;border:1.5px solid #ffe082;border-radius:8px;padding:10px;background:#fef9e7">
+    <div style="font-size:11px;font-weight:700;color:#7d5a00;margin-bottom:6px">🔗 Nhập GAS URL để kết nối:</div>
+    <input type="text" id="gas-url-l" style="width:100%;height:36px;border:1.5px solid #ffe082;border-radius:7px;padding:0 9px;font-size:11px;font-family:monospace;outline:none;margin-bottom:6px;background:#fafbfd" placeholder="https://script.google.com/macros/s/AKfycb.../exec">
+    <button onclick="saveGasRetry()" style="width:100%;height:34px;background:#1456b0;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer">💾 Lưu và đăng nhập lại</button>
+    <div style="font-size:10px;color:#999;margin-top:4px">Hỏi admin để lấy GAS URL</div>
+  </div>
+  <button class="sos-btn" onclick="showGSA()">⚙️ Máy chưa cấu hình? Nhấn đây để nhập GAS URL</button>
 </div>
 </div>
 
@@ -473,6 +479,21 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
       <button class="btn bout" onclick="upStudents()">⬆ Upload HS lên Sheets</button>
     </div>
     <div id="conn-res"></div>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--bd)">
+      <div style="font-size:13px;font-weight:700;color:var(--tx2);margin-bottom:10px">📤 Chia sẻ GAS URL cho giáo viên</div>
+      <div style="background:#f8f9ff;border:1.5px solid var(--bd2);border-radius:var(--r8);padding:11px 13px;display:flex;align-items:center;gap:9px">
+        <div style="flex:1;font-size:11.5px;font-family:monospace;color:var(--tx2);word-break:break-all" id="gas-display">Chưa có GAS URL</div>
+        <button onclick="copyGAS()" style="flex-shrink:0;height:32px;padding:0 12px;background:var(--p);color:#fff;border:none;border-radius:var(--r8);font-size:12px;font-weight:600;cursor:pointer">📋 Copy</button>
+      </div>
+      <div class="ib blue" style="margin-top:10px;margin-bottom:0">
+        <strong>📝 Hướng dẫn cho giáo viên (máy mới)</strong>
+        <p>1. Mở website → Thấy màn hình đăng nhập<br>
+        2. Nhấn nút <strong>"⚙️ Máy chưa cấu hình?"</strong> ở cuối trang<br>
+        3. Dán GAS URL (admin cung cấp) → Nhấn <strong>Lưu và đăng nhập lại</strong><br>
+        4. Nhập đúng tên đăng nhập và mật khẩu → Vào hệ thống<br>
+        <span style="color:var(--gd)">✅ Từ lần sau máy đó tự nhớ, không cần nhập lại GAS URL</span></p>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -532,6 +553,10 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
 
 <!-- ═══ JAVASCRIPT CHÍNH (chỉ ~55KB) ═══ -->
 <script>
+
+// ═══ CẤU HÌNH ═══
+// Admin: thay '' bằng GAS URL thực để tất cả máy đều đăng nhập được
+var DEFAULT_GAS = '';
 
 // ═══ KHỞI TẠO DỮ LIỆU TỪ JSON BLOCK ═══
 const SB   = JSON.parse(document.getElementById('_d_sb').textContent);
@@ -638,7 +663,7 @@ function doLogin(){
   btn.disabled = true;
   btn.textContent = '⏳ Đang đăng nhập...';
 
-  GAS = localStorage.getItem('gas_url') || '';
+  GAS = localStorage.getItem('gas_url') || DEFAULT_GAS || '';
 
   // ── TẦNG 1: Không có GAS → Admin vào ngay ──
   if (!GAS) {
@@ -648,8 +673,9 @@ function doLogin(){
       T('lmode').textContent = '⚠️ Offline — vào Cài đặt để kết nối Sheets';
       loginOK();
     } else {
-      err.textContent = 'Chưa cấu hình hệ thống. Dùng tài khoản admin.';
+      err.textContent = 'Chưa cấu hình GAS URL. Nhấn nút phía dưới để nhập GAS URL.';
       err.style.display = 'block';
+      var gsa=T('gas-sa');if(gsa) gsa.style.display='block';
     }
     return;
   }
@@ -690,6 +716,21 @@ function doLogin(){
 }
 
 // Nút khẩn cấp — xóa GAS, vào offline mode
+function showGSA(){
+  var el=T('gas-sa');
+  if(el) el.style.display=el.style.display==='none'?'block':'none';
+}
+function saveGasRetry(){
+  var el=T('gas-url-l');
+  if(!el||!el.value.trim()){toast('⚠️ Vui lòng nhập GAS URL','warn');return;}
+  var v=el.value.trim();
+  if(v.indexOf('script.google.com')<0){toast('❌ URL không đúng định dạng GAS','err');return;}
+  localStorage.setItem('gas_url',v);
+  DEFAULT_GAS=v; GAS=v;
+  T('gas-sa').style.display='none';
+  toast('✅ Đã lưu GAS URL — đang thử đăng nhập...','ok');
+  setTimeout(doLogin,600);
+}
 function sosLogin(){
   localStorage.removeItem('gas_url');
   localStorage.removeItem('_cu');
@@ -767,6 +808,7 @@ function initApp(){
   bldLop('d-lop',String(initK));
   dK(initK, document.querySelectorAll('#diem-kts .kt')[initK-1]);
   hsFil();updS();updP();renderSt();renderTK(0);
+  updateGasDisplay();
   if(!GAS){
     sUI('','Chưa kết nối');
     if(CU&&CU.role==='admin') T('diem-ban').innerHTML='<div class="ib warn" style="margin-bottom:10px"><strong>⚠️ Chưa kết nối Google Sheets</strong><p>Vào tab <strong>⚙️ Cài đặt</strong> để nhập GAS URL.</p></div>';
@@ -1371,10 +1413,29 @@ function expTKXL(){
 }
 
 // ═══ CÀI ĐẶT ═══
+function copyGAS(){
+  var url = localStorage.getItem('gas_url') || DEFAULT_GAS || '';
+  if(!url){toast('⚠️ Chưa có GAS URL — vào Cài đặt để nhập trước','warn');return;}
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(url).then(function(){toast('📋 Đã copy GAS URL — chia sẻ cho giáo viên!','ok');});
+  } else {
+    // fallback
+    var ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);
+    ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    toast('📋 Đã copy GAS URL!','ok');
+  }
+}
+function updateGasDisplay(){
+  var el=T('gas-display');
+  if(!el) return;
+  var url=localStorage.getItem('gas_url')||DEFAULT_GAS||'';
+  el.textContent=url||'Chưa có GAS URL — nhập vào ô trên và nhấn Lưu cài đặt';
+  el.style.color=url?'var(--p)':'var(--tx3)';
+}
 function saveSett(){
   GAS=T('gas-url').value.trim();SSID=T('ss-id').value.trim();
   localStorage.setItem('gas_url',GAS);localStorage.setItem('ss_id',SSID);
-  toast('✅ Đã lưu cài đặt','ok');if(GAS) syncNow();
+  toast('✅ Đã lưu cài đặt','ok');updateGasDisplay();if(GAS) syncNow();
 }
 function testConn(){
   if(!GAS){toast('⚠️ Chưa nhập GAS URL','warn');return;}
