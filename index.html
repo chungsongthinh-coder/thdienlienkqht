@@ -476,6 +476,7 @@ tbody td.c{text-align:center}
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <button class="btn btn-p" onclick="saveSettings()">💾 Lưu cài đặt</button>
             <button class="btn btn-g" onclick="testConnection()">🔌 Kiểm tra kết nối</button>
+            <button class="btn btn-out" onclick="openGASTest()">🔗 Mở URL test</button>
             <button class="btn btn-o" onclick="syncAll()">🔄 Đồng bộ dữ liệu ngay</button>
             <button class="btn btn-out" onclick="pushStudentsToSheets()">⬆ Upload HS lên Google Sheets</button>
           </div>
@@ -565,15 +566,35 @@ function onLoginSuccess(){
 function doLogout(){if(!confirm('Đăng xuất?'))return;currentUser=null;localStorage.removeItem('auth_user');document.getElementById('login-screen').style.display='flex';document.getElementById('app-screen').style.display='none';}
 
 // ─── GAS API ───
+// ─── GAS API — dùng XMLHttpRequest thay fetch để tránh CORS preflight ───
+function xhrGet(url){
+  return new Promise((resolve,reject)=>{
+    const xhr=new XMLHttpRequest();
+    xhr.open('GET',url,true);
+    xhr.onload=()=>{
+      try{resolve(JSON.parse(xhr.responseText));}
+      catch(e){reject(new Error('Phản hồi không hợp lệ: '+xhr.responseText.slice(0,100)));}
+    };
+    xhr.onerror=()=>reject(new Error('Không kết nối được đến Google Apps Script'));
+    xhr.ontimeout=()=>reject(new Error('Quá thời gian chờ (timeout 15s)'));
+    xhr.timeout=15000;
+    xhr.send();
+  });
+}
 async function gasGet(action,params={}){
   if(!GAS_URL)throw new Error('GAS URL chưa được cấu hình');
   const q=new URLSearchParams({action,...params}).toString();
-  const res=await fetch(GAS_URL+'?'+q);return await res.json();
+  return await xhrGet(GAS_URL+'?'+q);
 }
 async function gasPost(data){
   if(!GAS_URL)throw new Error('GAS URL chưa được cấu hình');
-  const res=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-  return await res.json();
+  // Gửi qua GET + encode data (tránh CORS preflight của POST)
+  const payload=encodeURIComponent(JSON.stringify(data));
+  return await xhrGet(GAS_URL+'?gaspost=1&data='+payload);
+}
+function openGASTest(){
+  if(!GAS_URL){showToast('⚠️ Chưa nhập GAS URL','warn');return;}
+  window.open(GAS_URL+'?action=ping','_blank');
 }
 
 // ─── SYNC ───
@@ -821,9 +842,53 @@ function renderTK(k){
 function saveSettings(){GAS_URL=document.getElementById('gas-url-input').value.trim();SS_ID=document.getElementById('ss-id-input').value.trim();localStorage.setItem('gas_url',GAS_URL);localStorage.setItem('ss_id',SS_ID);showToast('✅ Đã lưu cài đặt','ok');if(GAS_URL)syncAll();}
 async function testConnection(){
   if(!GAS_URL){showToast('⚠️ Chưa nhập GAS URL','warn');return;}
-  showLoader('Đang kiểm tra...');
-  try{const res=await gasGet('getStats');hideLoader();const el=document.getElementById('conn-result');if(res.ok){el.innerHTML=`<div style="background:var(--gl);border:1.5px solid #a5d6a7;border-radius:var(--r8);padding:12px;font-size:13px;color:#00695c">✅ Kết nối thành công! Tổng HS: ${res.data?.total||0}, Đã nhập: ${res.data?.nhap||0}</div>`;setSyncStatus('ok');}else{el.innerHTML=`<div style="background:var(--rl);border:1.5px solid #ef9a9a;border-radius:var(--r8);padding:12px;font-size:13px;color:var(--r)">❌ Lỗi: ${res.error}</div>`;setSyncStatus('err');}}
-  catch(e){hideLoader();document.getElementById('conn-result').innerHTML=`<div style="background:var(--rl);border:1.5px solid #ef9a9a;border-radius:var(--r8);padding:12px;font-size:13px;color:var(--r)">❌ ${e.message}</div>`;setSyncStatus('err');}
+  const el=document.getElementById('conn-result');
+  el.innerHTML='<div style="color:var(--tx3);font-size:13px;padding:10px">⏳ Đang kiểm tra kết nối...</div>';
+  showLoader('Đang kiểm tra kết nối GAS...');
+  try{
+    const res=await gasGet('ping');
+    hideLoader();
+    if(res.ok){
+      // ping OK → thử getStats
+      try{
+        const stats=await gasGet('getStats');
+        if(stats.ok){
+          el.innerHTML=`<div style="background:var(--gl);border:1.5px solid #a5d6a7;border-radius:var(--r8);padding:14px;font-size:13px;color:#00695c;line-height:1.8">
+            ✅ <strong>Kết nối thành công!</strong><br>
+            📊 Tổng HS trong Sheets: <strong>${stats.data?.total||0}</strong> &nbsp;|&nbsp;
+            ✏️ Đã nhập điểm: <strong>${stats.data?.nhap||0}</strong><br>
+            🕐 Server time: ${res.time||''}
+          </div>`;
+          setSyncStatus('ok');
+        } else {
+          el.innerHTML=`<div style="background:var(--yl);border:1.5px solid #ffe082;border-radius:var(--r8);padding:14px;font-size:13px;color:#7d5a00;line-height:1.8">
+            ⚠️ <strong>Kết nối được GAS nhưng lỗi đọc Sheets</strong><br>
+            Nguyên nhân: <em>${stats.error||'Chưa chạy setupSheets() hoặc SPREADSHEET_ID sai'}</em><br>
+            👉 Vào Apps Script → sửa SPREADSHEET_ID → Chạy setupSheets() → Deploy lại
+          </div>`;
+          setSyncStatus('err');
+        }
+      }catch(e2){
+        el.innerHTML=`<div style="background:var(--yl);border:1.5px solid #ffe082;border-radius:var(--r8);padding:14px;font-size:13px;color:#7d5a00">
+          ⚠️ GAS phản hồi nhưng không đọc được Sheets: ${e2.message}
+        </div>`;
+      }
+    } else {
+      el.innerHTML=`<div style="background:var(--rl);border:1.5px solid #ef9a9a;border-radius:var(--r8);padding:14px;font-size:13px;color:var(--r)">❌ GAS trả lỗi: ${res.error}</div>`;
+      setSyncStatus('err');
+    }
+  }catch(e){
+    hideLoader();
+    el.innerHTML=`<div style="background:var(--rl);border:1.5px solid #ef9a9a;border-radius:var(--r8);padding:14px;font-size:13px;color:var(--r);line-height:1.9">
+      ❌ <strong>${e.message}</strong><br>
+      <strong>Kiểm tra lại:</strong><br>
+      1️⃣ Vào Apps Script → <strong>Deploy → Manage deployments</strong><br>
+      2️⃣ Xác nhận: <strong>Execute as: Me</strong> &amp; <strong>Who has access: Anyone</strong><br>
+      3️⃣ Nếu chưa có deployment → <strong>New deployment → Web app</strong><br>
+      4️⃣ <a href="javascript:openGASTest()" style="color:var(--p);font-weight:700">👉 Click đây để mở URL test trong tab mới</a> (phải thấy JSON)
+    </div>`;
+    setSyncStatus('err');
+  }
 }
 
 // ─── EXPORT ───
