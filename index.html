@@ -229,6 +229,11 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
 .toast{position:fixed;bottom:20px;right:20px;padding:10px 15px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:var(--shm);z-index:9000;transform:translateY(60px);opacity:0;transition:.3s;max-width:320px;background:#1a202c;color:#fff}
 .toast.on{transform:translateY(0);opacity:1}.toast.ok{background:var(--g)}.toast.err{background:var(--r)}.toast.warn{background:var(--o)}
 .empty{padding:40px 20px;text-align:center;color:var(--tx3)}.ei{font-size:32px;margin-bottom:7px}
+
+/* Học bạ: full width khi active */
+#pg-hocba .hb-tbl td, #pg-hocba .hb-tbl th { font-size: 11.5pt; }
+.pg-hocba-active .sb { display: none !important; }
+.pg-hocba-active .mc { flex: 1; }
 @media(max-width:880px){.sb{display:none}.cg{grid-template-columns:1fr}}
 @media(max-width:580px){.al{padding:10px 10px 32px}.fg2,.fg3,.tt27g,.uf{grid-template-columns:1fr}.uf-full{grid-column:1}}
 
@@ -547,22 +552,29 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
 </div>
 
 
-<!-- HỌC BẠ AI -->
+
+<!-- HỌC BẠ AI V5 -->
 <div class="page" id="pg-hocba">
 
-  <!-- SELECTOR: Chọn học sinh -->
-  <div id="hb-selector">
-    <div class="cgrid" style="margin-bottom:12px">
-      <div class="ccard" style="grid-column:1/-1;background:linear-gradient(135deg,#0d3d82,#1456b0);color:#fff;border:none">
-        <div class="cc-ico" style="background:rgba(255,255,255,.2);font-size:20px">📖</div>
-        <div>
-          <div style="font-family:'Lexend',sans-serif;font-size:15px;font-weight:700">Học bạ số AI</div>
-          <div style="font-size:12px;opacity:.8;margin-top:2px">AI tự động sinh lời nhận xét • GV chỉnh sửa và in ấn • Theo chuẩn TT27/2020</div>
-        </div>
+  <!-- SELECTOR -->
+  <div id="hb-selector" style="display:block">
+    <div style="background:linear-gradient(135deg,#0d3d82,#1456b0 50%,#2193f3);border-radius:var(--r12);padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-family:'Lexend',sans-serif;font-size:16px;font-weight:700;color:#fff">📖 Học bạ số AI</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.78);margin-top:3px">AI tự động sinh lời nhận xét · GV chỉnh sửa · In đúng mẫu TT27/2020/TT-BGDĐT</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="hbExpClass()">📚 Xuất học bạ cả lớp</button>
+        <select id="hb-year-sel" onchange="HBY=this.value" style="height:34px;border:1px solid rgba(255,255,255,.3);border-radius:var(--r8);padding:0 10px;background:rgba(255,255,255,.15);color:#fff;font-size:12.5px;cursor:pointer;outline:none">
+          <option value="2025-2026" selected>2025–2026</option>
+          <option value="2024-2025">2024–2025</option>
+          <option value="2023-2024">2023–2024</option>
+          <option value="2022-2023">2022–2023</option>
+        </select>
       </div>
     </div>
     <div class="tb">
-      <div class="srch"><span class="si2">🔍</span><input type="text" id="hb-q" placeholder="Tìm học sinh..." oninput="debounce(hbFil,220)"></div>
+      <div class="srch"><span class="si2">🔍</span><input type="text" id="hb-q" placeholder="Tìm tên, mã học sinh..." oninput="debounce(hbFil,220)"></div>
       <select id="hb-kh" onchange="hbKhoi()"><option value="">Tất cả khối</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
       <select id="hb-lop" onchange="hbFil()"><option value="">Tất cả lớp</option></select>
       <select id="hb-nt" onchange="hbFil()"><option value="">Tất cả</option><option value="done">Đã có điểm</option><option value="hb">Đã có học bạ AI</option></select>
@@ -574,30 +586,28 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
     </div><div class="pagi"><span class="pagi-info" id="hb-pi"></span><div class="pagi-btns" id="hb-pb"></div></div></div>
   </div>
 
-  <!-- EDITOR: Soạn học bạ -->
+  <!-- EDITOR -->
   <div id="hb-editor" style="display:none">
-    <!-- Toolbar -->
-    <div class="hb-tb tw" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:11px 14px;margin-bottom:12px">
+    <div class="tw" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:11px 14px;margin-bottom:12px">
       <button class="btn bout" onclick="hbBack()">← Quay lại</button>
-      <div style="flex:1;min-width:150px">
-        <strong style="font-size:13px" id="hb-tb-name"></strong>
-        <span style="font-size:11.5px;color:var(--tx3);margin-left:8px" id="hb-tb-info"></span>
+      <div style="flex:1">
+        <strong style="font-size:14px" id="hb-tb-name"></strong>
+        <span style="font-size:12px;color:var(--tx3);margin-left:8px" id="hb-tb-info"></span>
       </div>
       <select id="hb-year" onchange="hbYearChange()" style="height:34px;border:1.5px solid var(--bd2);border-radius:var(--r8);padding:0 22px 0 9px;font-size:12px;background:#fafbfd url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%279%27 height=%276%27%3E%3Cpath d=%27M0 0l4.5 6 4.5-6z%27 fill=%27%23718096%27/%3E%3C/svg%3E') no-repeat right 7px center;appearance:none;outline:none;cursor:pointer">
-        <option value="2024-2025">Năm học 2024-2025</option>
-        <option value="2023-2024">Năm học 2023-2024</option>
-        <option value="2022-2023">Năm học 2022-2023</option>
-        <option value="2025-2026" selected>Năm học 2025-2026</option>
+        <option value="2025-2026" selected>2025–2026</option>
+        <option value="2024-2025">2024–2025</option>
+        <option value="2023-2024">2023–2024</option>
+        <option value="2022-2023">2022–2023</option>
       </select>
-      <button class="btn bpu" id="hb-gen-btn" onclick="hbGenAI()">🤖 Tạo nhận xét AI</button>
-      <button class="btn bg" onclick="hbSave()">💾 Lưu học bạ</button>
+      <button class="btn bpu" id="hb-gen-btn" onclick="hbGenAI()">🤖 AI sinh nhận xét</button>
+      <button class="btn bg" onclick="hbSave()">💾 Lưu</button>
       <button class="btn bp" onclick="hbPrint()">🖨 In học bạ</button>
     </div>
-
-    <!-- Nội dung học bạ -->
     <div id="hb-content"></div>
   </div>
 </div>
+
 
 <!-- MODAL NHẬP ĐIỂM -->
 <div class="mbg" id="mBg">
@@ -994,7 +1004,12 @@ function gp(id,el){
   if(id==='pg-status') renderSt();
   if(id==='pg-tk') renderTK(tkKF);
   if(id==='pg-users') loadUsers();
-  if(id==='pg-hocba'){bldLop('hb-lop','');hbFil();}
+  if(id==='pg-hocba'){
+    document.querySelector('.al').classList.add('pg-hocba-active');
+    bldLop('hb-lop','');hbFil();
+  } else {
+    document.querySelector('.al').classList.remove('pg-hocba-active');
+  }
 }
 function ss(el){document.querySelectorAll('.si').forEach(function(i){i.classList.remove('on');});el.classList.add('on');}
 function bldLop(id,khoi){
@@ -1692,153 +1707,125 @@ function upStudents(){
 
 // ═══ AUTO LOGIN ═══
 
+
 // ══════════════════════════════════════════════════════════
-//  MODULE HỌC BẠ SỐ AI — TH DIỄN LIÊN
-//  Tích hợp Claude AI để sinh lời nhận xét học bạ TT27/2020
+//  MODULE HỌC BẠ SỐ AI — V5
+//  Chuẩn TT27/2020 · K1-3 vs K4-5 đúng mẫu · Xuất cả lớp
 // ══════════════════════════════════════════════════════════
 
-// ─── CẤU TRÚC MÔN HỌC THEO KHỐI ───
+// ─── CẤU TRÚC MÔN HỌC ───
 var HB_MONS = {
   '1':[
-    {name:'Toán', mk:'mon_Toán', dk:'diem_Toán', hd:true},
-    {name:'Tiếng Việt', mk:'mon_Tiếng_việt', dk:'diem_Tiếng_việt', hd:true},
-    {name:'Đạo đức', mk:'mon_Đạo_đức', hd:false},
-    {name:'Tự nhiên và xã hội', mk:'mon_Tự_nhiên_và_xã_hội', hd:false},
-    {name:'Ngoại ngữ 1', mk:'mon_Ngoại_ngữ', hd:false},
-    {name:'Nghệ thuật (Âm nhạc)', mk:'mon_Nghệ_thuật_Âm_nhạc', hd:false},
-    {name:'Nghệ thuật (Mĩ thuật)', mk:'mon_Nghệ_thuật_Mĩ_thuật', hd:false},
-    {name:'Hoạt động trải nghiệm', mk:'mon_Hoạt_động_trải_nghiệm', hd:false},
-    {name:'Giáo dục thể chất', mk:'mon_Giáo_dục_thể_chất', hd:false}
-  ],
-  '3':[
-    {name:'Toán', mk:'mon_Toán', dk:'diem_Toán', hd:true},
-    {name:'Tiếng Việt', mk:'mon_Tiếng_việt', dk:'diem_Tiếng_việt', hd:true},
-    {name:'Đạo đức', mk:'mon_Đạo_đức', hd:false},
-    {name:'Tự nhiên và xã hội', mk:'mon_Tự_nhiên_và_xã_hội', hd:false},
-    {name:'Ngoại ngữ 1', mk:'mon_Ngoại_ngữ', dk:'diem_Ngoại_ngữ', hd:true},
-    {name:'Tin học và Công nghệ (Tin học)', mk:'mon_TH-CN_Tin_học', hd:false},
-    {name:'Tin học và Công nghệ (Công nghệ)', mk:'mon_TH-CN_Công_nghệ', hd:false},
-    {name:'Nghệ thuật (Âm nhạc)', mk:'mon_Nghệ_thuật_Âm_nhạc', hd:false},
-    {name:'Nghệ thuật (Mĩ thuật)', mk:'mon_Nghệ_thuật_Mĩ_thuật', hd:false},
-    {name:'Hoạt động trải nghiệm', mk:'mon_Hoạt_động_trải_nghiệm', hd:false},
-    {name:'Giáo dục thể chất', mk:'mon_Giáo_dục_thể_chất', hd:false}
+    {name:'Toán',mk:'mon_Toán',dk:'diem_Toán',hd:true},
+    {name:'Tiếng Việt',mk:'mon_Tiếng_việt',dk:'diem_Tiếng_việt',hd:true},
+    {name:'Đạo đức',mk:'mon_Đạo_đức',hd:false},
+    {name:'Tự nhiên và xã hội',mk:'mon_Tự_nhiên_và_xã_hội',hd:false},
+    {name:'Ngoại ngữ 1',mk:'mon_Ngoại_ngữ',hd:false},
+    {name:'Tiếng dân tộc',mk:'mon_Tiếng_dân_tộc',hd:false},
+    {name:'Tin học và Công nghệ',mk:'mon_TH-CN_Tin_học',hd:false},
+    {name:'Nghệ thuật (Âm nhạc)',mk:'mon_Nghệ_thuật_Âm_nhạc',hd:false},
+    {name:'Nghệ thuật (Mĩ thuật)',mk:'mon_Nghệ_thuật_Mĩ_thuật',hd:false},
+    {name:'Hoạt động trải nghiệm',mk:'mon_Hoạt_động_trải_nghiệm',hd:false},
+    {name:'Giáo dục thể chất',mk:'mon_Giáo_dục_thể_chất',hd:false}
   ],
   '4':[
-    {name:'Toán', mk:'mon_Toán', dk:'diem_Toán', hd:true},
-    {name:'Tiếng Việt', mk:'mon_Tiếng_việt', dk:'diem_Tiếng_việt', hd:true},
-    {name:'Lịch sử và Địa lí', mk:'mon_Lịch_sử_và_Địa_lí', dk:'diem_Lịch_sử_và_Địa_lí', hd:true},
-    {name:'Tiếng Anh', mk:'mon_Ngoại_ngữ', dk:'diem_Ngoại_ngữ', hd:true},
-    {name:'Tin học và Công nghệ (Tin học)', mk:'mon_TH-CN_Tin_học', dk:'diem_TH-CN_Tin_học', hd:true},
-    {name:'Khoa học', mk:'mon_Khoa_học', dk:'diem_Khoa_học', hd:true},
-    {name:'Tin học và Công nghệ (Công nghệ)', mk:'mon_TH-CN_Công_nghệ', dk:'diem_TH-CN_Công_nghệ', hd:true},
-    {name:'Đạo đức', mk:'mon_Đạo_đức', hd:false},
-    {name:'Nghệ thuật (Âm nhạc)', mk:'mon_Nghệ_thuật_Âm_nhạc', hd:false},
-    {name:'Nghệ thuật (Mĩ thuật)', mk:'mon_Nghệ_thuật_Mĩ_thuật', hd:false},
-    {name:'Hoạt động trải nghiệm', mk:'mon_Hoạt_động_trải_nghiệm', hd:false},
-    {name:'Giáo dục thể chất', mk:'mon_Giáo_dục_thể_chất', hd:false}
+    {name:'Toán',mk:'mon_Toán',dk:'diem_Toán',hd:true},
+    {name:'Tiếng Việt',mk:'mon_Tiếng_việt',dk:'diem_Tiếng_việt',hd:true},
+    {name:'Lịch sử và Địa lí',mk:'mon_Lịch_sử_và_Địa_lí',dk:'diem_Lịch_sử_và_Địa_lí',hd:true},
+    {name:'Tiếng Anh',mk:'mon_Ngoại_ngữ',dk:'diem_Ngoại_ngữ',hd:true},
+    {name:'Tin học và Công nghệ (Tin học)',mk:'mon_TH-CN_Tin_học',dk:'diem_TH-CN_Tin_học',hd:true},
+    {name:'Khoa học',mk:'mon_Khoa_học',dk:'diem_Khoa_học',hd:true},
+    {name:'Tin học và Công nghệ (Công nghệ)',mk:'mon_TH-CN_Công_nghệ',dk:'diem_TH-CN_Công_nghệ',hd:true},
+    {name:'Đạo đức',mk:'mon_Đạo_đức',hd:false},
+    {name:'Tiếng dân tộc',mk:'mon_Tiếng_dân_tộc',hd:false},
+    {name:'Nghệ thuật (Âm nhạc)',mk:'mon_Nghệ_thuật_Âm_nhạc',hd:false},
+    {name:'Nghệ thuật (Mĩ thuật)',mk:'mon_Nghệ_thuật_Mĩ_thuật',hd:false},
+    {name:'Hoạt động trải nghiệm',mk:'mon_Hoạt_động_trải_nghiệm',hd:false},
+    {name:'Giáo dục thể chất',mk:'mon_Giáo_dục_thể_chất',hd:false}
   ]
 };
-HB_MONS['2'] = HB_MONS['1'];
-HB_MONS['5'] = HB_MONS['4'];
+HB_MONS['2']=HB_MONS['1']; HB_MONS['3']=HB_MONS['1'];
+HB_MONS['5']=HB_MONS['4'];
 
-var HB_PC = [
+var HB_NLC=[
+  ['Tự chủ và tự học','nl_Tự_chủ_và_tự_học'],
+  ['Giao tiếp và hợp tác','nl_Giao_tiếp_và_hợp_tác'],
+  ['Giải quyết vấn đề và sáng tạo','nl_Giải_quyết_vấn_đề_và_sáng_tạo']
+];
+var HB_NLD123=[
+  ['Ngôn ngữ','nl_Ngôn_ngữ'],
+  ['Tính toán','nl_Tính_toán'],
+  ['Khoa học','nl_Khoa_học'],
+  ['Thẩm mĩ','nl_Thẩm_mĩ'],
+  ['Thể chất','nl_Thể_chất']
+];
+var HB_NLD45=[
+  ['Ngôn ngữ','nl_Ngôn_ngữ'],
+  ['Tính toán','nl_Tính_toán'],
+  ['Khoa học','nl_Khoa_học'],
+  ['Công nghệ','nl_TH-CN_Công_nghệ'],
+  ['Tin học','nl_TH-CN_Tin_học'],
+  ['Thẩm mĩ','nl_Thẩm_mĩ'],
+  ['Thể chất','nl_Thể_chất']
+];
+var HB_PC=[
   ['Yêu nước','pc_Yêu_nước'],
   ['Nhân ái','pc_Nhân_ái'],
   ['Chăm chỉ','pc_Chăm_chỉ'],
   ['Trung thực','pc_Trung_thực'],
   ['Trách nhiệm','pc_Trách_nhiệm']
 ];
-
-var HB_NLC = [
-  ['Tự chủ và tự học','nl_Tự_chủ_và_tự_học'],
-  ['Giao tiếp và hợp tác','nl_Giao_tiếp_và_hợp_tác'],
-  ['Giải quyết vấn đề và sáng tạo','nl_Giải_quyết_vấn_đề_và_sáng_tạo']
-];
-
-var HB_NLD_K123 = [
-  ['Ngôn ngữ','nl_Ngôn_ngữ'],
-  ['Tính toán','nl_Tính_toán'],
-  ['Khoa học','nl_Khoa_học'],
-  ['Thẩm mĩ','nl_Thẩm_mĩ'],
-  ['Thể chất','nl_Thể_chất']
-];
-
-var HB_NLD_K45 = [
-  ['Ngôn ngữ','nl_Ngôn_ngữ'],
-  ['Tính toán','nl_Tính_toán'],
-  ['Khoa học','nl_Khoa_học'],
-  ['Công nghệ','nl_Công_nghệ'],
-  ['Tin học','nl_Tin_học'],
-  ['Thẩm mĩ','nl_Thẩm_mĩ'],
-  ['Thể chất','nl_Thể_chất']
-];
-
-var HB_KQL = {
-  HTXS:'Hoàn thành xuất sắc',
-  HTT:'Hoàn thành tốt',
-  HT:'Hoàn thành',
-  CHT:'Chưa hoàn thành',
-  null:'Hoàn thành'
-};
+var HB_KQL={HTXS:'Hoàn thành xuất sắc',HTT:'Hoàn thành tốt',HT:'Hoàn thành',CHT:'Chưa hoàn thành'};
 
 // ─── STATE ───
-var HBS = null; // Học sinh hiện tại
-var HBD = {};   // Dữ liệu học bạ đã lưu {ma: {year: {comments}}}
-var HBF = [];   // Filtered list
-var HBP = 1;
-var HBY = '2025-2026'; // Năm học
+var HBS=null, HBY='2025-2026', HBF=[], HBP=1;
+var ML_MON={HTT:'T',HT:'H',CHT:'C'};
+var ML_NL={'T':'T','Đ':'Đ','CCG':'C'};
 
-// ─── HỌC SINH LIST ───
-function hbKhoi(){ bldLop('hb-lop', T('hb-kh').value); hbFil(); }
+function getHBData(ma){try{return JSON.parse(localStorage.getItem('hbd_'+ma)||'null');}catch(e){return null;}}
+function saveHBData(ma,data){localStorage.setItem('hbd_'+ma,JSON.stringify(data));}
+function monId(n){return n.replace(/\s+/g,'_').replace(/[()\/]/g,'');}
+
+// ─── LIST ───
+function hbKhoi(){bldLop('hb-lop',T('hb-kh').value);hbFil();}
 function hbFil(){
-  var q=T('hb-q').value.toLowerCase(), kh=T('hb-kh').value,
-      lop=T('hb-lop').value, nt=T('hb-nt').value;
-  HBF = allS.filter(function(s){
-    if(kh&&s.lop.indexOf(kh)!==0) return false;
-    if(lop&&s.lop!==lop) return false;
-    if(q&&(s.ten+s.ma).toLowerCase().indexOf(q)<0) return false;
-    if(nt==='done'&&!isDone(s)) return false;
-    if(nt==='hb'&&!getHBData(s.ma)) return false;
+  var q=T('hb-q').value.toLowerCase(),kh=T('hb-kh').value,
+      lop=T('hb-lop').value,nt=T('hb-nt').value;
+  HBF=allS.filter(function(s){
+    if(kh&&s.lop.indexOf(kh)!==0)return false;
+    if(lop&&s.lop!==lop)return false;
+    if(q&&(s.ten+s.ma).toLowerCase().indexOf(q)<0)return false;
+    if(nt==='done'&&!isDone(s))return false;
+    if(nt==='hb'&&!getHBData(s.ma))return false;
     return true;
   });
-  HBP=1; renderHBList();
+  HBP=1;renderHBList();
 }
-function getHBData(ma){
-  try{
-    var d=JSON.parse(localStorage.getItem('hbd_'+ma)||'null');
-    return d;
-  }catch(e){return null;}
-}
-function saveHBData(ma, data){
-  localStorage.setItem('hbd_'+ma, JSON.stringify(data));
-}
-
 function renderHBList(){
-  var tot=HBF.length, rows=HBF.slice((HBP-1)*PZ, HBP*PZ), tb=T('hb-tb');
-  if(!tot){
-    tb.innerHTML='<tr><td colspan="8"><div class="empty"><div class="ei">📖</div><p>Không tìm thấy học sinh</p></div></td></tr>';
-    T('hb-rc').textContent='';return;
-  }
+  var tot=HBF.length,rows=HBF.slice((HBP-1)*PZ,HBP*PZ),tb=T('hb-tb');
+  if(!tot){tb.innerHTML='<tr><td colspan="8"><div class="empty"><div class="ei">📖</div><p>Không tìm thấy học sinh</p></div></td></tr>';T('hb-rc').textContent='';return;}
+  var mlKQ={HTXS:'⭐ HT Xuất sắc',HTT:'✨ HT Tốt',HT:'✓ Hoàn thành',CHT:'✗ Chưa HT'};
+  var clKQ={HTXS:'bl-htxs',HTT:'bl-htt',HT:'bl-ht',CHT:'bl-cht'};
   tb.innerHTML=rows.map(function(s,i){
     var gi=SB.findIndex(function(b){return b.ma===s.ma;});
     var kq=cTT(s.ma,s.khoi);
     var hbd=getHBData(s.ma);
-    var hbBadge=hbd?'<span class="bl" style="background:var(--purl);color:var(--pur)">✓ Có học bạ AI</span>':'<span style="color:#ccc;font-size:11px">Chưa có</span>';
-    var kqLbl=kq?kqL(kq):'<span style="color:#ccc">Chưa có điểm</span>';
+    var kqBadge=kq?('<span class="bl '+clKQ[kq]+'">'+mlKQ[kq]+'</span>'):'<span style="color:#ccc;font-size:11px">Chưa có điểm</span>';
+    var hbBadge=hbd?'<span class="bl" style="background:var(--purl);color:var(--pur)">✓ Có học bạ</span>':'<span style="color:#ccc;font-size:11px">Chưa có</span>';
     var gt=s.gioi_tinh||s.gt||'';
-    return '<tr><td style="color:var(--tx3);font-size:11px">'+(( HBP-1)*PZ+i+1)+'</td>'+
+    return '<tr><td style="color:var(--tx3);font-size:11px">'+((HBP-1)*PZ+i+1)+'</td>'+
       '<td><span class="bl bl-lop">'+s.lop+'</span></td>'+
       '<td class="tdn">'+s.ten+'<small>'+s.ma+'</small></td>'+
       '<td style="font-size:11px">'+s.ns+'</td>'+
       '<td><span class="bl '+(gt==='Nam'?'bl-nam':'bl-nu')+'">'+gt+'</span></td>'+
-      '<td class="c">'+kqLbl+'</td>'+
+      '<td class="c">'+kqBadge+'</td>'+
       '<td class="c">'+hbBadge+'</td>'+
       '<td class="c"><button class="abtn ae" onclick="openHB('+gi+')">📖 Mở học bạ</button></td></tr>';
   }).join('');
   T('hb-rc').textContent=tot+' học sinh';
   mkPagi('hb-pb','hb-pi',HBP,HBF,'hbPg');
 }
-function hbPg(p){ HBP=Math.max(1,Math.min(p,Math.ceil(HBF.length/PZ))); renderHBList(); }
+function hbPg(p){HBP=Math.max(1,Math.min(p,Math.ceil(HBF.length/PZ)));renderHBList();}
 
 // ─── MỞ HỌC BẠ ───
 function openHB(idx){
@@ -1849,427 +1836,386 @@ function openHB(idx){
   T('hb-tb-info').textContent='Lớp '+HBS.lop+' · '+HBS.ns;
   renderHBContent();
 }
-function hbBack(){
-  T('hb-editor').style.display='none';
-  T('hb-selector').style.display='block';
-  HBS=null;
-}
-function hbYearChange(){
-  HBY=T('hb-year').value;
-  if(HBS) renderHBContent();
-}
+function hbBack(){T('hb-editor').style.display='none';T('hb-selector').style.display='block';HBS=null;}
+function hbYearChange(){HBY=T('hb-year').value;if(HBS)renderHBContent();}
 
-// ─── RENDER NỘI DUNG HỌC BẠ ───
+// ─── RENDER FORM ───
 function renderHBContent(){
-  var k=String(HBS.khoi), g=grades[HBS.ma]||{};
+  var k=String(HBS.khoi),g=grades[HBS.ma]||{};
   var mons=HB_MONS[k]||HB_MONS['1'];
-  var nld=(HBS.khoi>=4)?HB_NLD_K45:HB_NLD_K123;
+  var nld=(HBS.khoi>=4)?HB_NLD45:HB_NLD123;
   var kq=cTT(HBS.ma,HBS.khoi);
-  var kqText=HB_KQL[kq]||'Hoàn thành';
-  var gt=HBS.gioi_tinh||HBS.gt||'Nam';
-  var mL={HTT:'T',HT:'H',CHT:'C'};
-  var nL={'T':'T','Đ':'Đ','CCG':'C'};
-
-  // Lấy dữ liệu học bạ đã lưu (nếu có)
   var hbd=getHBData(HBS.ma)||{};
-  var cmts=hbd[HBY]||{};
+  var cm=hbd[HBY]||{};
+  var gt=HBS.gioi_tinh||HBS.gt||'Nam';
 
-  function getNX(key, defVal){
-    return cmts[key]||defVal||'';
+  function gv(key){return cm[key]||'';}
+  function ta(key,rows,ph){
+    return '<textarea id="hb-'+key+'" data-key="'+key+'" rows="'+(rows||1)+'" placeholder="'+(ph||'')+'" oninput="hbEdit(this.dataset.key,this.value)" class="'+(gv(key)?'ai-gen':'')+'">'+gv(key)+'</textarea>';
   }
-  function makeTA(key, aiClass){
-    var val=getNX(key,'');
-    var cls=val&&aiClass?'ai-gen':'';
-    return '<textarea id="hb-'+key+'" data-key="'+key+'" class="'+cls+'" oninput="hbEdit(this.dataset.key,this.value)">'+val+'</textarea>';
-  }
-  function monId(n){ return n.replace(/\s+/g,'_').replace(/[()\/]/g,''); }
 
   var h='';
 
-  // Thông tin học sinh
-  h+='<div class="hb-sect"><div class="hb-sect-h">👤 Thông tin học sinh <span>'+HBY+' · Lớp '+HBS.lop+'</span></div>';
-  h+='<div class="hb-info">';
-  h+='<span><strong>'+HBS.ten+'</strong></span>';
-  h+='<span>Giới tính: <strong>'+gt+'</strong></span>';
-  h+='<span>Ngày sinh: <strong>'+HBS.ns+'</strong></span>';
-  h+='<span>Lớp: <strong>'+HBS.lop+'</strong></span>';
-  h+='<span>Năm học: <strong>'+HBY+'</strong></span>';
-  h+='</div>';
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;padding:10px 14px">';
-  h+='<div class="hb-final"><div class="fl"><label>Chiều cao (cm)</label><textarea id="hb-chieucao" rows="1" data-key="chieucao" oninput="hbEdit(this.dataset.key,this.value)">'+getNX('chieucao','')+'</textarea></div></div>';
-  h+='<div class="hb-final"><div class="fl"><label>Cân nặng (kg)</label><textarea id="hb-cannang" rows="1" data-key="cannang" oninput="hbEdit(this.dataset.key,this.value)">'+getNX('cannang','')+'</textarea></div></div>';
-  h+='<div class="hb-final"><div class="fl"><label>Số ngày nghỉ có phép</label><textarea id="hb-nghinphep" rows="1" data-key="nghinphep" oninput="hbEdit(this.dataset.key,this.value)">'+getNX('nghinphep','0')+'</textarea></div></div>';
-  h+='<div class="hb-final"><div class="fl"><label>Số ngày nghỉ không phép</label><textarea id="hb-nghikphep" rows="1" data-key="nghikphep" oninput="hbEdit(this.dataset.key,this.value)">'+getNX('nghikphep','0')+'</textarea></div></div>';
+  // INFO
+  h+='<div class="hb-sect"><div class="hb-sect-h">👤 Thông tin học sinh <span>Năm học '+HBY+'</span></div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px 14px">';
+  h+='<div class="hb-final"><div class="fl"><label>Chiều cao (cm)</label>'+ta('chieucao',1)+'</div></div>';
+  h+='<div class="hb-final"><div class="fl"><label>Cân nặng (kg)</label>'+ta('cannang',1)+'</div></div>';
+  h+='<div class="hb-final"><div class="fl"><label>Nghỉ có phép (ngày)</label>'+ta('nghinphep',1)+'</div></div>';
+  h+='<div class="hb-final"><div class="fl"><label>Nghỉ không phép</label>'+ta('nghikphep',1)+'</div></div>';
   h+='</div></div>';
 
-  // 1. Môn học
+  // 1. MÔN HỌC
   h+='<div class="hb-sect"><div class="hb-sect-h">📚 1. Các môn học và hoạt động giáo dục</div>';
-  h+='<table class="hb-tbl"><thead><tr><th class="tl">Môn học và hoạt động giáo dục</th><th style="width:60px">Mức đạt được</th><th style="width:60px">Điểm KTĐK</th><th>Nhận xét</th></tr></thead><tbody>';
+  h+='<table class="hb-tbl"><thead><tr><th class="tl">Môn học và hoạt động giáo dục</th><th style="width:80px">Mức đạt được</th>';
+  if(HBS.khoi<=3) h+='<th style="width:70px">Điểm KTĐK</th>';
+  else h+='<th style="width:70px">Điểm KTĐK</th>';
+  h+='<th>Nhận xét của giáo viên</th></tr></thead><tbody>';
   mons.forEach(function(m){
-    var mucVal=g[m.mk]||'';
-    var diemVal=m.hd&&m.dk?(g[m.dk]||''):'';
-    var mucDisp=mL[mucVal]||mucVal;
+    var mv=g[m.mk]||'',dv=m.hd&&m.dk?(g[m.dk]||''):'';
+    var mvD=ML_MON[mv]||mv;
+    var mvCl=mv==='HTT'?'bl-htt':mv==='HT'?'bl-ht':mv==='CHT'?'bl-cht':'';
     var nxKey='mon_'+monId(m.name);
     h+='<tr><td class="sub">'+m.name+'</td>';
-    h+='<td class="tc"><span class="bl '+(mucVal==='HTT'?'bl-htt':mucVal==='HT'?'bl-ht':mucVal==='CHT'?'bl-cht':'')+'">'+mucDisp+'</span></td>';
-    h+='<td class="tc" style="font-weight:700;color:var(--p)">'+(diemVal||'—')+'</td>';
-    h+='<td class="hbnx">'+makeTA(nxKey, true)+'</td></tr>';
+    h+='<td class="tc">'+(mv?('<span class="bl '+mvCl+'">'+mvD+'</span>'):'')+'</td>';
+    h+='<td class="tc" style="font-weight:700;color:var(--p)">'+(dv||'')+'</td>';
+    h+='<td class="hbnx"><textarea id="hb-'+nxKey+'" data-key="'+nxKey+'" oninput="hbEdit(this.dataset.key,this.value)" class="'+(gv(nxKey)?'ai-gen':'')+'">'+gv(nxKey)+'</textarea></td></tr>';
   });
   h+='</tbody></table></div>';
 
-  // 2. Phẩm chất
+  // 2. PHẨM CHẤT
   h+='<div class="hb-sect"><div class="hb-sect-h">💎 2. Những phẩm chất chủ yếu</div>';
-  h+='<table class="hb-tbl"><thead><tr><th class="tl" style="width:140px">Phẩm chất</th><th style="width:80px">Mức đạt được</th><th>Nhận xét</th></tr></thead><tbody>';
+  h+='<table class="hb-tbl"><thead><tr><th class="tl" style="width:150px">Phẩm chất</th><th style="width:80px">Mức đạt được</th><th>Nhận xét của giáo viên</th></tr></thead><tbody>';
   HB_PC.forEach(function(pc){
-    var mucVal=g[pc[1]]||'';
-    var mucDisp=nL[mucVal]||mucVal;
+    var mv=g[pc[1]]||'';var mvD=ML_NL[mv]||mv;
+    var mvCl=mv==='T'?'bl-t':mv==='Đ'?'bl-d':mv==='CCG'?'bl-ccg':'';
     var nxKey='pc_'+pc[0].replace(/\s+/g,'_');
     h+='<tr><td class="sub">'+pc[0]+'</td>';
-    h+='<td class="tc"><span class="bl '+(mucVal==='T'?'bl-t':mucVal==='Đ'?'bl-d':mucVal==='CCG'?'bl-ccg':'')+'">'+mucDisp+'</span></td>';
-    h+='<td class="hbnx">'+makeTA(nxKey, true)+'</td></tr>';
+    h+='<td class="tc">'+(mv?('<span class="bl '+mvCl+'">'+mvD+'</span>'):'')+'</td>';
+    h+='<td class="hbnx"><textarea id="hb-'+nxKey+'" data-key="'+nxKey+'" oninput="hbEdit(this.dataset.key,this.value)" class="'+(gv(nxKey)?'ai-gen':'')+'">'+gv(nxKey)+'</textarea></td></tr>';
   });
   h+='</tbody></table></div>';
 
-  // 3. Năng lực
+  // 3. NĂNG LỰC
   h+='<div class="hb-sect"><div class="hb-sect-h">🧠 3. Những năng lực cốt lõi</div>';
-  // 3.1 Năng lực chung
-  h+='<div style="padding:9px 14px;background:var(--p3);font-size:12px;font-weight:700;color:var(--pd);border-bottom:1px solid var(--bd)">3.1 Những năng lực chung</div>';
-  h+='<table class="hb-tbl"><thead><tr><th class="tl" style="width:180px">Năng lực</th><th style="width:80px">Mức đạt được</th><th>Nhận xét</th></tr></thead><tbody>';
+  h+='<div style="padding:7px 14px;background:var(--p3);font-size:12px;font-weight:700;color:var(--pd);border-bottom:1px solid var(--bd)">3.1 Những năng lực chung</div>';
+  h+='<table class="hb-tbl"><thead><tr><th class="tl" style="width:200px">Năng lực</th><th style="width:80px">Mức đạt được</th><th>Nhận xét của giáo viên</th></tr></thead><tbody>';
   HB_NLC.forEach(function(nl){
-    var mucVal=g[nl[1]]||'';
-    var mucDisp=nL[mucVal]||mucVal;
+    var mv=g[nl[1]]||'';var mvD=ML_NL[mv]||mv;
+    var mvCl=mv==='T'?'bl-t':mv==='Đ'?'bl-d':mv==='CCG'?'bl-ccg':'';
     var nxKey='nlc_'+nl[0].replace(/\s+/g,'_').replace(/&/g,'va');
     h+='<tr><td class="sub">'+nl[0]+'</td>';
-    h+='<td class="tc"><span class="bl '+(mucVal==='T'?'bl-t':mucVal==='Đ'?'bl-d':mucVal==='CCG'?'bl-ccg':'')+'">'+mucDisp+'</span></td>';
-    h+='<td class="hbnx">'+makeTA(nxKey, true)+'</td></tr>';
+    h+='<td class="tc">'+(mv?('<span class="bl '+mvCl+'">'+mvD+'</span>'):'')+'</td>';
+    h+='<td class="hbnx"><textarea id="hb-'+nxKey+'" data-key="'+nxKey+'" oninput="hbEdit(this.dataset.key,this.value)" class="'+(gv(nxKey)?'ai-gen':'')+'">'+gv(nxKey)+'</textarea></td></tr>';
   });
   h+='</tbody></table>';
-  // 3.2 Năng lực đặc thù
-  h+='<div style="padding:9px 14px;background:var(--p3);font-size:12px;font-weight:700;color:var(--pd);border-bottom:1px solid var(--bd);border-top:1px solid var(--bd)">3.2 Những năng lực đặc thù</div>';
-  h+='<table class="hb-tbl"><thead><tr><th class="tl" style="width:180px">Năng lực</th><th style="width:80px">Mức đạt được</th><th>Nhận xét</th></tr></thead><tbody>';
+  h+='<div style="padding:7px 14px;background:var(--p3);font-size:12px;font-weight:700;color:var(--pd);border-top:1px solid var(--bd);border-bottom:1px solid var(--bd)">3.2 Những năng lực đặc thù</div>';
+  h+='<table class="hb-tbl"><thead><tr><th class="tl" style="width:200px">Năng lực</th><th style="width:80px">Mức đạt được</th><th>Nhận xét của giáo viên</th></tr></thead><tbody>';
   nld.forEach(function(nl){
-    var mucVal=g[nl[1]]||'';
-    var mucDisp=nL[mucVal]||mucVal;
+    var mv=g[nl[1]]||'';var mvD=ML_NL[mv]||mv;
+    var mvCl=mv==='T'?'bl-t':mv==='Đ'?'bl-d':mv==='CCG'?'bl-ccg':'';
     var nxKey='nld_'+nl[0].replace(/\s+/g,'_');
     h+='<tr><td class="sub">'+nl[0]+'</td>';
-    h+='<td class="tc"><span class="bl '+(mucVal==='T'?'bl-t':mucVal==='Đ'?'bl-d':mucVal==='CCG'?'bl-ccg':'')+'">'+mucDisp+'</span></td>';
-    h+='<td class="hbnx">'+makeTA(nxKey, true)+'</td></tr>';
+    h+='<td class="tc">'+(mv?('<span class="bl '+mvCl+'">'+mvD+'</span>'):'')+'</td>';
+    h+='<td class="hbnx"><textarea id="hb-'+nxKey+'" data-key="'+nxKey+'" oninput="hbEdit(this.dataset.key,this.value)" class="'+(gv(nxKey)?'ai-gen':'')+'">'+gv(nxKey)+'</textarea></td></tr>';
   });
   h+='</tbody></table></div>';
 
-  // 4-6 Tổng kết
-  h+='<div class="hb-sect"><div class="hb-sect-h">🎓 Tổng kết cuối năm</div>';
-  h+='<div class="hb-final">';
+  // TỔNG KẾT
+  h+='<div class="hb-sect"><div class="hb-sect-h">🎓 Tổng kết cuối năm</div><div class="hb-final">';
+  var kqDefault=HB_KQL[kq]||'Hoàn thành';
   h+='<div class="fl"><label>4. Đánh giá kết quả giáo dục</label>';
-  h+='<textarea id="hb-kqgd" rows="1" class="'+(getNX('kqgd','')?'ai-gen':'')+'" data-key="kqgd" oninput="hbEdit(this.dataset.key,this.value)">'+getNX('kqgd',kqText)+'</textarea></div>';
+  h+='<textarea id="hb-kqgd" data-key="kqgd" rows="1" oninput="hbEdit(this.dataset.key,this.value)" class="'+(gv('kqgd')?'ai-gen':'')+'">'+(gv('kqgd')||kqDefault)+'</textarea></div>';
   h+='<div class="fl"><label>5. Khen thưởng</label>';
-  h+='<textarea id="hb-khen" rows="2" class="'+(getNX('khen','')?'ai-gen':'')+'" data-key="khen" oninput="hbEdit(this.dataset.key,this.value)">'+getNX('khen','')+'</textarea></div>';
-  h+='<div class="fl"><label>6. Hoàn thành chương trình lớp học / chương trình tiểu học</label>';
-  h+='<textarea id="hb-hoanthanh" rows="2" class="'+(getNX('hoanthanh','')?'ai-gen':'')+'" data-key="hoanthanh" oninput="hbEdit(this.dataset.key,this.value)">'+getNX('hoanthanh','')+'</textarea></div>';
+  h+='<textarea id="hb-khen" data-key="khen" rows="2" oninput="hbEdit(this.dataset.key,this.value)" class="'+(gv('khen')?'ai-gen':'')+'">'+gv('khen')+'</textarea></div>';
+  h+='<div class="fl"><label>6. Hoàn thành chương trình lớp học</label>';
+  var nextCl=HBS.khoi>=5?'Hoàn thành chương trình lớp 5; Hoàn thành chương trình tiểu học.':'Hoàn thành chương trình lớp '+HBS.khoi+'; Được lên lớp '+(HBS.khoi+1)+'.';
+  h+='<textarea id="hb-hoanthanh" data-key="hoanthanh" rows="2" oninput="hbEdit(this.dataset.key,this.value)" class="'+(gv('hoanthanh')?'ai-gen':'')+'">'+(gv('hoanthanh')||nextCl)+'</textarea></div>';
   h+='</div>';
-
-  // Chữ ký
-  h+='<div class="hb-sig">';
-  h+='<div class="hb-sig-box"><strong>Xác nhận của Hiệu trưởng</strong><em>(Ký, ghi rõ họ tên và đóng dấu)</em>';
-  h+='<div class="hb-final" style="padding:0;margin-top:8px"><div class="fl"><textarea id="hb-ht-name" rows="1" data-key="ht_name" oninput="hbEdit(this.dataset.key,this.value)" style="text-align:center" placeholder="Tên hiệu trưởng">'+getNX('ht_name',localStorage.getItem('school_ht')||'')+'</textarea></div></div></div>';
+  h+='<div class="hb-sig"><div class="hb-sig-box"><strong>Xác nhận của Hiệu trưởng</strong><em>(Ký, ghi rõ họ tên và đóng dấu)</em>';
+  h+='<div class="hb-final" style="padding:0;margin-top:6px"><div class="fl"><textarea id="hb-ht_name" data-key="ht_name" rows="1" style="text-align:center" placeholder="Họ tên Hiệu trưởng" oninput="hbEdit(this.dataset.key,this.value)">'+gv('ht_name')+'</textarea></div></div></div>';
   h+='<div class="hb-sig-box"><strong>Giáo viên chủ nhiệm</strong><em>(Ký và ghi rõ họ tên)</em>';
-  h+='<div class="hb-final" style="padding:0;margin-top:8px"><div class="fl"><textarea id="hb-gvcn-name" rows="1" data-key="gvcn_name" oninput="hbEdit(this.dataset.key,this.value)" style="text-align:center" placeholder="Tên giáo viên">'+getNX('gvcn_name', (CU&&CU.role==='teacher'?CU.hoten:''))+'</textarea></div></div></div>';
-  h+='</div>';
-  h+='</div>';
+  h+='<div class="hb-final" style="padding:0;margin-top:6px"><div class="fl"><textarea id="hb-gvcn_name" data-key="gvcn_name" rows="1" style="text-align:center" placeholder="Họ tên GVCN" oninput="hbEdit(this.dataset.key,this.value)">'+gv('gvcn_name')+'</textarea></div></div></div>';
+  h+='</div></div>';
 
   T('hb-content').innerHTML=h;
-
-  // Khởi tạo bldLop cho selector
-  if(T('hb-lop')&&!T('hb-lop').children.length){
-    bldLop('hb-lop','');
-  }
 }
 
-// ─── EDIT HANDLER ───
-function hbEdit(key, val){
+function hbEdit(key,val){
+  if(!HBS)return;
   var hbd=getHBData(HBS.ma)||{};
-  if(!hbd[HBY]) hbd[HBY]={};
+  if(!hbd[HBY])hbd[HBY]={};
   hbd[HBY][key]=val;
-  // Xóa class ai-gen khi user tự sửa
-  var el=T('hb-'+key);
-  if(el) el.classList.remove('ai-gen');
-  saveHBData(HBS.ma, hbd);
+  saveHBData(HBS.ma,hbd);
 }
 
-// ─── LƯU HỌC BẠ ───
+// ─── LƯU ───
 function hbSave(){
-  if(!HBS){toast('⚠️ Chưa chọn học sinh','warn');return;}
-  // Collect all field values
+  if(!HBS){toast('Chưa chọn học sinh','warn');return;}
   var hbd=getHBData(HBS.ma)||{};
-  if(!hbd[HBY]) hbd[HBY]={};
-  var fields=['chieucao','cannang','nghinphep','nghikphep','kqgd','khen','hoanthanh','ht_name','gvcn_name'];
+  if(!hbd[HBY])hbd[HBY]={};
+  var allKeys=['chieucao','cannang','nghinphep','nghikphep','kqgd','khen','hoanthanh','ht_name','gvcn_name'];
   var k=String(HBS.khoi);
   var mons=HB_MONS[k]||HB_MONS['1'];
-  var nld=(HBS.khoi>=4)?HB_NLD_K45:HB_NLD_K123;
-  function monId(n){return n.replace(/\s+/g,'_').replace(/[()\//]/g,'');}
-  mons.forEach(function(m){fields.push('mon_'+monId(m.name));});
-  HB_PC.forEach(function(pc){fields.push('pc_'+pc[0].replace(/\s+/g,'_'));});
-  HB_NLC.forEach(function(nl){fields.push('nlc_'+nl[0].replace(/\s+/g,'_').replace(/&/g,'va'));});
-  nld.forEach(function(nl){fields.push('nld_'+nl[0].replace(/\s+/g,'_'));});
-  fields.forEach(function(f){
-    var el=T('hb-'+f);
-    if(el) hbd[HBY][f]=el.value;
-  });
-  saveHBData(HBS.ma, hbd);
-  toast('💾 Đã lưu học bạ: '+HBS.ten,'ok');
-  renderHBList(); // refresh badge
+  var nld=(HBS.khoi>=4)?HB_NLD45:HB_NLD123;
+  mons.forEach(function(m){allKeys.push('mon_'+monId(m.name));});
+  HB_PC.forEach(function(pc){allKeys.push('pc_'+pc[0].replace(/\s+/g,'_'));});
+  HB_NLC.forEach(function(nl){allKeys.push('nlc_'+nl[0].replace(/\s+/g,'_').replace(/&/g,'va'));});
+  nld.forEach(function(nl){allKeys.push('nld_'+nl[0].replace(/\s+/g,'_'));});
+  allKeys.forEach(function(f){var el=T('hb-'+f);if(el)hbd[HBY][f]=el.value;});
+  saveHBData(HBS.ma,hbd);
+  toast('Đã lưu học bạ: '+HBS.ten,'ok');
 }
 
-// ─── IN HỌC BẠ ───
-function hbPrint(){
-  if(!HBS){toast('⚠️ Chưa chọn học sinh','warn');return;}
-  hbSave();
+// ─── BUILD PRINT HTML ───
+function buildHBHtml(hs){
+  var k=String(hs.khoi),g=grades[hs.ma]||{};
+  var mons=HB_MONS[k]||HB_MONS['1'];
+  var nld=(hs.khoi>=4)?HB_NLD45:HB_NLD123;
+  var kq=cTT(hs.ma,hs.khoi);
+  var hbd=getHBData(hs.ma)||{};
+  var cm=hbd[HBY]||{};
+  var gt=hs.gioi_tinh||hs.gt||'Nam';
   var sn=localStorage.getItem('school_name_full')||'Trường Tiểu học Diễn Liên';
   var sa=localStorage.getItem('school_addr')||'Xã Quảng Châu · Tỉnh Nghệ An';
-  var yr=HBY||'2025-2026';
-  var hbd=getHBData(HBS.ma)||{};
-  var cmts=hbd[HBY]||{};
-  var g=grades[HBS.ma]||{};
-  var k=String(HBS.khoi);
-  var mons=HB_MONS[k]||HB_MONS['1'];
-  var nld=(HBS.khoi>=4)?HB_NLD_K45:HB_NLD_K123;
-  var kq=cTT(HBS.ma,HBS.khoi);
+  function gv(key){return cm[key]||'';}
+  function fmtNX(s){return s||'';}
   var kqText=HB_KQL[kq]||'Hoàn thành';
-  var gt=HBS.gioi_tinh||HBS.gt||'Nam';
-  var mL={HTT:'T',HT:'H',CHT:'C'};
-  var nL={'T':'T','Đ':'Đ','CCG':'C'};
-  function monId(n){return n.replace(/\s+/g,'_').replace(/[()\//]/g,'');}
-  function getNX(key){return cmts[key]||'';}
+  var addrParts=sa.split('·');
+  var xa=(addrParts[0]||'').trim();
+  var tinh=(addrParts[1]||'').trim();
+  var huyen='';
+  if(addrParts.length>=3)huyen=(addrParts[1]||'').trim(),tinh=(addrParts[2]||'').trim();
+  var now=new Date();
+  var dateStr=xa+', ngày '+now.getDate()+' tháng '+(now.getMonth()+1)+' năm '+now.getFullYear();
+  var nextCl=hs.khoi>=5?'Hoàn thành chương trình lớp 5; Hoàn thành chương trình tiểu học.':'Hoàn thành chương trình lớp '+hs.khoi+'; Được lên lớp '+(hs.khoi+1)+'.';
 
-  var html='<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>Học bạ - '+HBS.ten+'</title>';
-  html+='<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:"Times New Roman",serif;font-size:12pt;color:#000;padding:15mm 12mm}';
-  html+='h1{text-align:center;font-size:28pt;font-weight:bold;letter-spacing:2px;margin:40px 0 8px}';
-  html+='.subtitle{text-align:center;font-size:16pt;letter-spacing:4px;margin-bottom:60px}';
-  html+='.info-line{margin-bottom:8px;font-size:12pt}.info-line strong{font-weight:normal;text-decoration:none}';
-  html+='.header-org{text-align:center;font-size:10pt;margin-bottom:30px;letter-spacing:1px}';
-  html+='.section-title{font-size:12pt;font-weight:bold;margin:10px 0 6px}';
-  html+='table{width:100%;border-collapse:collapse;margin-bottom:8px;font-size:11pt}';
-  html+='th{border:1px solid #000;padding:5px 6px;text-align:center;background:#eee;font-weight:bold;font-size:10pt}';
-  html+='td{border:1px solid #000;padding:4px 6px;vertical-align:top}';
-  html+='.tc{text-align:center;font-weight:bold}.sub{font-weight:normal}';
-  html+='.sig-box{width:48%;display:inline-block;text-align:center;vertical-align:top;font-size:11pt}';
-  html+='.sig-box strong{display:block;font-weight:bold}.sig-box em{font-size:10pt}';
-  html+='.sig-name{margin-top:28px;font-weight:bold;font-style:normal}';
-  html+='.info-row{display:flex;flex-wrap:wrap;gap:20px;margin-bottom:8px;font-size:11pt}';
-  html+='.pagebreak{page-break-before:always}';
-  html+='@page{size:A4 portrait;margin:12mm 10mm}';
-  html+='</style></head><body>';
+  var css='*{margin:0;padding:0;box-sizing:border-box}body{font-family:"Times New Roman",Times,serif;font-size:12pt;color:#000;background:#fff}'+
+    '.page{width:210mm;min-height:297mm;padding:15mm 12mm;page-break-after:always}'+
+    '.cover{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:260mm}'+
+    '.cover .org{font-size:12pt;text-align:center;text-transform:uppercase;letter-spacing:1px;margin-bottom:4mm}'+
+    '.cover h1{font-size:30pt;font-weight:bold;text-align:center;letter-spacing:3px;margin:20mm 0 4mm}'+
+    '.cover .sub{font-size:16pt;text-align:center;letter-spacing:5px;margin-bottom:30mm}'+
+    '.cover .info{width:100%;font-size:12pt;line-height:2.2}'+
+    '.info-page h2{text-align:center;font-size:16pt;font-weight:bold;margin-bottom:8mm}'+
+    '.info-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:3mm;font-size:11.5pt}'+
+    '.block-title{font-size:12pt;font-weight:bold;margin:4mm 0 2mm}'+
+    'table{width:100%;border-collapse:collapse;margin-bottom:3mm}'+
+    'th{border:1px solid #000;padding:3pt 5pt;text-align:center;background:#d9d9d9;font-weight:bold;font-size:10.5pt}'+
+    'th.tl{text-align:left}'+
+    'td{border:1px solid #000;padding:3pt 5pt;vertical-align:top;font-size:10.5pt}'+
+    'td.tc{text-align:center;font-weight:bold;vertical-align:middle}'+
+    'td.sub{vertical-align:middle}'+
+    '.sect-sub{background:#ebebeb;padding:3pt 5pt;font-weight:bold;font-size:10.5pt;border:1px solid #000;border-bottom:0}'+
+    '.sig{display:flex;justify-content:space-between;margin-top:8mm}'+
+    '.sig-box{width:45%;text-align:center}'+
+    '.sig-box strong{display:block;font-size:11.5pt}'+
+    '.sig-box em{font-size:10pt}'+
+    '.sig-name{margin-top:18mm;font-weight:bold;font-size:12pt}'+
+    '.date{text-align:right;margin-bottom:2mm;font-style:italic;font-size:11pt}'+
+    '@page{size:A4 portrait;margin:0}'+
+    '@media print{body{margin:0}'+'.page{padding:12mm 10mm}}';
 
-  // Trang bìa
-  html+='<div class="header-org">BỘ GIÁO DỤC VÀ ĐÀO TẠO</div>';
-  html+='<h1>HỌC BẠ</h1><div class="subtitle">TIỂU HỌC</div>';
-  html+='<div class="info-line">Họ và tên học sinh: <strong>'+HBS.ten.toUpperCase()+'</strong></div>';
-  html+='<div class="info-line">Trường: '+sn+'</div>';
-  var parts=sa.split('·');
-  if(parts.length>=2){
-    html+='<div class="info-line">Xã (Phường, Thị trấn): '+parts[0].trim()+'</div>';
-    html+='<div class="info-line">Tỉnh (Thành phố): '+parts[1].trim()+'</div>';
-  }
-  html+='<div class="pagebreak"></div>';
+  var h='<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>Học bạ - '+hs.ten+'</title><style>'+css+'</style></head><body>';
 
-  // Trang thông tin
-  html+='<div style="text-align:center;font-size:20pt;font-weight:bold;margin-bottom:16px">HỌC BẠ</div>';
-  html+='<div class="info-row">';
-  html+='<span>Họ và tên học sinh: <strong>'+HBS.ten.toUpperCase()+'</strong></span>';
-  html+='<span>Giới tính: '+gt+'</span></div>';
-  html+='<div class="info-row"><span>Ngày, tháng, năm sinh: '+HBS.ns+'</span></div>';
+  // === TRANG BÌA ===
+  h+='<div class="page cover">';
+  h+='<div class="org">Bộ Giáo dục và Đào tạo</div>';
+  h+='<h1>Học bạ</h1>';
+  h+='<div class="sub">Tiểu học</div>';
+  h+='<div class="info">';
+  h+='<div>Họ và tên học sinh: <strong>'+hs.ten.toUpperCase()+'</strong></div>';
+  h+='<div>Trường: <strong>'+sn+'</strong></div>';
+  h+='<div>Xã (Phường, Thị trấn): <strong>'+xa+'</strong></div>';
+  if(huyen)h+='<div>Huyện (Thành phố, Quận, Thị xã): <strong>'+huyen+'</strong></div>';
+  h+='<div>Tỉnh (Thành phố): <strong>'+tinh+'</strong></div>';
+  h+='</div></div>';
 
-  // Bảng quá trình học tập
-  html+='<div style="margin-top:20px;font-weight:bold;text-align:center;font-size:14pt;margin-bottom:8px">QUÁ TRÌNH HỌC TẬP</div>';
-  html+='<table><thead><tr><th>Năm học</th><th>Lớp</th><th>Tên trường</th><th>Số đăng bộ</th><th>Ngày nhập học/<br>chuyển đến</th></tr></thead>';
-  html+='<tbody><tr><td>'+yr+'</td><td>'+HBS.lop+'</td><td>'+sn+'</td><td>'+HBS.ma.slice(-3)+'</td><td>01/09/'+yr.split('-')[0]+'</td></tr>';
-  html+='</tbody></table>';
-  html+='<div class="pagebreak"></div>';
+  // === TRANG THÔNG TIN ===
+  h+='<div class="page info-page">';
+  h+='<h2>HỌC BẠ</h2>';
+  h+='<div class="info-row"><span>Họ và tên học sinh: <strong>'+hs.ten.toUpperCase()+'</strong></span><span>Giới tính: <strong>'+gt+'</strong></span></div>';
+  h+='<div class="info-row"><span>Ngày, tháng, năm sinh: <strong>'+hs.ns+'</strong></span><span>Dân tộc: Kinh</span><span>Quốc tịch: Việt Nam</span></div>';
+  h+='<div class="info-row"><span>Nơi sinh: ........................................................................</span></div>';
+  h+='<div class="info-row"><span>Quê quán: ........................................................................</span></div>';
+  h+='<div class="info-row"><span>Nơi ở hiện nay: ........................................................................</span></div>';
+  h+='<div class="info-row"><span>Họ và tên cha: ........................................................................</span></div>';
+  h+='<div class="info-row"><span>Họ và tên mẹ: ........................................................................</span></div>';
+  h+='<div class="info-row"><span>Người giám hộ (nếu có): ........................................................................</span></div>';
+  h+='<div class="sig"><div class="sig-box"><strong>'+xa.replace('Xã ','').replace('xã ','')+', ngày 01 tháng 9 năm '+HBY.split('-')[0]+'</strong><br><em><strong>Hiệu trưởng</strong></em><em>(Ki, ghi rõ họ tên và đóng dấu)</em><div class="sig-name">'+(gv('ht_name')||'&nbsp;')+'</div></div></div>';
+  h+='<div class="block-title" style="margin-top:8mm">QUÁ TRÌNH HỌC TẬP</div>';
+  h+='<table><thead><tr><th>Năm học</th><th>Lớp</th><th>Tên trường</th><th>Số đăng bộ</th><th>Ngày nhập học/chuyển đến</th></tr></thead>';
+  h+='<tbody><tr><td class="tc">'+HBY+'</td><td class="tc">'+hs.lop+'</td><td>'+sn+'</td><td class="tc">'+hs.ma.slice(-3)+'</td><td class="tc">01/09/'+HBY.split('-')[0]+'</td></tr>';
+  for(var r=0;r<4;r++)h+='<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>';
+  h+='</tbody></table></div>';
 
-  // Trang kết quả năm học
-  html+='<div class="info-row">';
-  html+='<span>Họ và tên học sinh: <strong>'+HBS.ten+'</strong></span>';
-  html+='<span>Lớp: '+HBS.lop+'</span></div>';
-  html+='<div class="info-row">';
-  html+='<span>Chiều cao: '+(getNX('chieucao')||'......')+' cm</span>';
-  html+='<span>Cân nặng: '+(getNX('cannang')||'......')+' kg</span>';
-  html+='<span>Số ngày nghỉ có phép: '+(getNX('nghinphep')||'0')+'</span>';
-  html+='<span>Số ngày nghỉ không phép: '+(getNX('nghikphep')||'0')+'</span></div>';
+  // === TRANG KẾT QUẢ ===
+  h+='<div class="page">';
+  h+='<div class="info-row"><span>Họ và tên học sinh: <strong>'+hs.ten+'</strong></span><span>Lớp: <strong>'+hs.lop+'</strong></span></div>';
+  h+='<div class="info-row" style="margin-bottom:2mm">';
+  h+='<span>Chiều cao: '+(gv('chieucao')||'......')+' cm</span>';
+  h+='<span>Cân nặng: '+(gv('cannang')||'......')+' kg</span>';
+  h+='<span>Số ngày nghỉ có phép: '+(gv('nghinphep')||'0')+' · Không phép: '+(gv('nghikphep')||'0')+'</span>';
+  h+='</div>';
 
-  // 1. Môn học
-  html+='<div class="section-title">1. Các môn học và hoạt động giáo dục</div>';
-  html+='<table><thead><tr><th style="width:170px;text-align:left">Môn học và hoạt động giáo dục</th><th style="width:65px">Mức đạt được</th><th style="width:65px">Điểm KTĐK</th><th>Nhận xét</th></tr></thead><tbody>';
+  // Môn học
+  h+='<div class="block-title">1. Các môn học và hoạt động giáo dục</div>';
+  h+='<table><thead><tr><th class="tl" style="width:42%">Môn học và hoạt động giáo dục</th><th style="width:13%">Mức đạt được</th><th style="width:13%">Điểm KTĐK</th><th>Nhận xét của giáo viên</th></tr></thead><tbody>';
   mons.forEach(function(m){
-    var mucVal=g[m.mk]||'';var diemVal=m.hd&&m.dk?(g[m.dk]||''):'';
-    var mucDisp=mL[mucVal]||mucVal;
-    html+='<tr><td class="sub">'+m.name+'</td><td class="tc">'+mucDisp+'</td><td class="tc">'+(diemVal||'')+'</td><td>'+getNX('mon_'+monId(m.name))+'</td></tr>';
+    var mv=g[m.mk]||'',dv=m.hd&&m.dk?(g[m.dk]||''):'';
+    var mvD=ML_MON[mv]||mv;
+    h+='<tr><td class="sub">'+m.name+'</td><td class="tc">'+mvD+'</td><td class="tc">'+(dv||'')+'</td><td>'+fmtNX(gv('mon_'+monId(m.name)))+'</td></tr>';
   });
-  html+='</tbody></table>';
+  h+='</tbody></table>';
 
-  // 2. Phẩm chất
-  html+='<div class="section-title" style="margin-top:6px">2. Những phẩm chất chủ yếu</div>';
-  html+='<table><thead><tr><th style="width:130px;text-align:left">Phẩm chất</th><th style="width:80px">Mức đạt được</th><th>Nhận xét</th></tr></thead><tbody>';
+  // Phẩm chất
+  h+='<div class="block-title">2. Những phẩm chất chủ yếu</div>';
+  h+='<table><thead><tr><th class="tl" style="width:28%">Phẩm chất</th><th style="width:15%">Mức đạt được</th><th>Nhận xét của giáo viên</th></tr></thead><tbody>';
   HB_PC.forEach(function(pc){
-    var mucVal=g[pc[1]]||'';var mucDisp=nL[mucVal]||mucVal;
-    html+='<tr><td class="sub">'+pc[0]+'</td><td class="tc">'+mucDisp+'</td><td>'+getNX('pc_'+pc[0].replace(/\s+/g,'_'))+'</td></tr>';
+    var mv=g[pc[1]]||'',mvD=ML_NL[mv]||mv;
+    h+='<tr><td class="sub">'+pc[0]+'</td><td class="tc">'+mvD+'</td><td>'+fmtNX(gv('pc_'+pc[0].replace(/\s+/g,'_')))+'</td></tr>';
   });
-  html+='</tbody></table>';
+  h+='</tbody></table>';
 
-  // 3. Năng lực
-  html+='<div class="section-title" style="margin-top:6px">3. Những năng lực cốt lõi</div>';
-  html+='<div style="font-size:11pt;font-weight:bold;margin-bottom:4px">3.1 Những năng lực chung</div>';
-  html+='<table><thead><tr><th style="width:180px;text-align:left">Năng lực</th><th style="width:80px">Mức đạt được</th><th>Nhận xét</th></tr></thead><tbody>';
+  // Năng lực
+  h+='<div class="block-title">3. Những năng lực cốt lõi</div>';
+  h+='<div class="sect-sub">3.1 Những năng lực chung</div>';
+  h+='<table><thead><tr><th class="tl" style="width:35%">Năng lực</th><th style="width:15%">Mức đạt được</th><th>Nhận xét của giáo viên</th></tr></thead><tbody>';
   HB_NLC.forEach(function(nl){
-    var mucVal=g[nl[1]]||'';var mucDisp=nL[mucVal]||mucVal;
-    html+='<tr><td class="sub">'+nl[0]+'</td><td class="tc">'+mucDisp+'</td><td>'+getNX('nlc_'+nl[0].replace(/\s+/g,'_').replace(/&/g,'va'))+'</td></tr>';
+    var mv=g[nl[1]]||'',mvD=ML_NL[mv]||mv;
+    h+='<tr><td class="sub">'+nl[0]+'</td><td class="tc">'+mvD+'</td><td>'+fmtNX(gv('nlc_'+nl[0].replace(/\s+/g,'_').replace(/&/g,'va')))+'</td></tr>';
   });
-  html+='</tbody></table>';
-  html+='<div style="font-size:11pt;font-weight:bold;margin:6px 0 4px">3.2 Những năng lực đặc thù</div>';
-  html+='<table><thead><tr><th style="width:180px;text-align:left">Năng lực</th><th style="width:80px">Mức đạt được</th><th>Nhận xét</th></tr></thead><tbody>';
+  h+='</tbody></table>';
+  h+='<div class="sect-sub">3.2 Những năng lực đặc thù</div>';
+  h+='<table><thead><tr><th class="tl" style="width:35%">Năng lực</th><th style="width:15%">Mức đạt được</th><th>Nhận xét của giáo viên</th></tr></thead><tbody>';
   nld.forEach(function(nl){
-    var mucVal=g[nl[1]]||'';var mucDisp=nL[mucVal]||mucVal;
-    html+='<tr><td class="sub">'+nl[0]+'</td><td class="tc">'+mucDisp+'</td><td>'+getNX('nld_'+nl[0].replace(/\s+/g,'_'))+'</td></tr>';
+    var mv=g[nl[1]]||'',mvD=ML_NL[mv]||mv;
+    h+='<tr><td class="sub">'+nl[0]+'</td><td class="tc">'+mvD+'</td><td>'+fmtNX(gv('nld_'+nl[0].replace(/\s+/g,'_')))+'</td></tr>';
   });
-  html+='</tbody></table>';
+  h+='</tbody></table>';
 
-  // 4-6
-  html+='<div class="section-title" style="margin-top:6px">4. Đánh giá kết quả giáo dục: '+(getNX('kqgd')||kqText)+'</div>';
-  html+='<div class="section-title">5. Khen thưởng:</div>';
-  html+='<div style="padding-left:16px;font-size:12pt">'+(getNX('khen')||'&nbsp;')+'</div>';
-  html+='<div class="section-title" style="margin-top:6px">6. Hoàn thành chương trình lớp học/chương trình tiểu học:</div>';
-  html+='<div style="padding-left:16px;font-size:12pt">'+(getNX('hoanthanh')||'&nbsp;')+'</div>';
+  h+='<p class="block-title">4. Đánh giá kết quả giáo dục: <span style="font-weight:normal">'+(gv('kqgd')||kqText)+'</span></p>';
+  h+='<p class="block-title">5. Khen thưởng:</p><p style="padding-left:5mm;margin-bottom:2mm;font-size:11.5pt">'+(gv('khen')||'&nbsp;')+'</p>';
+  h+='<p class="block-title">6. Hoàn thành chương trình lớp học/chương trình tiểu học:</p>';
+  h+='<p style="padding-left:5mm;margin-bottom:3mm;font-size:11.5pt">'+(gv('hoanthanh')||nextCl)+'</p>';
+  h+='<p class="date">'+dateStr+'</p>';
+  h+='<div class="sig">';
+  h+='<div class="sig-box"><strong>Xác nhận của Hiệu trưởng</strong><em>(Ký, ghi rõ họ tên và đóng dấu)</em><div class="sig-name">'+(gv('ht_name')||'&nbsp;')+'</div></div>';
+  h+='<div class="sig-box"><strong>Giáo viên chủ nhiệm</strong><em>(Ký và ghi rõ họ tên)</em><div class="sig-name">'+(gv('gvcn_name')||'&nbsp;')+'</div></div>';
+  h+='</div></div>';
+  h+='</body></html>';
+  return h;
+}
 
-  // Địa danh + chữ ký
-  var day=new Date();
-  var addr=sa.split('·')[0]||'Xã Diễn Liên';
-  html+='<div style="text-align:right;margin-top:10px;font-style:italic;font-size:11pt">'+addr.trim()+', ngày '+day.getDate()+' tháng '+(day.getMonth()+1)+' năm '+day.getFullYear()+'</div>';
-  html+='<div style="display:flex;justify-content:space-between;margin-top:14px">';
-  html+='<div class="sig-box"><strong>Xác nhận của Hiệu trưởng</strong><em>(Ký, ghi rõ họ tên và đóng dấu)</em><div class="sig-name">'+(getNX('ht_name')||'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;')+'</div></div>';
-  html+='<div class="sig-box"><strong>Giáo viên chủ nhiệm</strong><em>(Ký và ghi rõ họ tên)</em><div class="sig-name">'+(getNX('gvcn_name')||'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;')+'</div></div>';
-  html+='</div>';
-
-  html+='</body></html>';
-
-  var w=window.open('','_blank','width=800,height=900');
-  w.document.write(html);
+// ─── IN 1 HỌC SINH ───
+function hbPrint(){
+  if(!HBS){toast('Chưa chọn học sinh','warn');return;}
+  hbSave();
+  var w=window.open('','_blank','width=850,height=950');
+  w.document.write(buildHBHtml(HBS));
   w.document.close();
-  setTimeout(function(){w.print();},600);
+  setTimeout(function(){w.print();},700);
+}
+
+// ─── XUẤT CẢ LỚP ───
+function hbExpClass(){
+  var lop=T('hb-lop').value;
+  if(!lop){toast('Hãy chọn một lớp cụ thể trước khi xuất','warn');return;}
+  var hsLop=allS.filter(function(s){return s.lop===lop;});
+  if(!hsLop.length){toast('Không có học sinh trong lớp','warn');return;}
+  loader('Đang tạo học bạ lớp '+lop+' ('+hsLop.length+' HS)...');
+  setTimeout(function(){
+    var fullHtml='<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>Học bạ lớp '+lop+' - '+HBY+'</title></head><body style="margin:0;padding:0">';
+    hsLop.forEach(function(hs){
+      var inner=buildHBHtml(hs);
+      // Lấy phần body
+      var bodyMatch=inner.match(/<body[^>]*>([\s\S]*)<\/body>/);
+      if(bodyMatch)fullHtml+=bodyMatch[1];
+    });
+    fullHtml+='</body></html>';
+    var blob=new Blob([fullHtml],{type:'text/html;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;a.download='HocBa_Lop'+lop+'_'+HBY+'.html';
+    document.body.appendChild(a);a.click();
+    document.body.removeChild(a);URL.revokeObjectURL(url);
+    loader();
+    toast('Đã xuất học bạ lớp '+lop+' ('+hsLop.length+' HS) — Mở file bằng trình duyệt rồi in/lưu PDF','ok');
+  },200);
 }
 
 // ─── AI GENERATION ───
 async function hbGenAI(){
-  if(!HBS){toast('⚠️ Chưa chọn học sinh','warn');return;}
+  if(!HBS){toast('Chưa chọn học sinh','warn');return;}
   var g=grades[HBS.ma]||{};
   var k=String(HBS.khoi);
   var mons=HB_MONS[k]||HB_MONS['1'];
-  var nld=(HBS.khoi>=4)?HB_NLD_K45:HB_NLD_K123;
+  var nld=(HBS.khoi>=4)?HB_NLD45:HB_NLD123;
   var kq=cTT(HBS.ma,HBS.khoi);
-  var kqText=HB_KQL[kq]||'Hoàn thành';
   var gt=HBS.gioi_tinh||HBS.gt||'Nam';
-  var mL={HTT:'Hoàn thành tốt',HT:'Hoàn thành',CHT:'Chưa hoàn thành'};
-  var nLbl={'T':'Tốt','Đ':'Đạt','CCG':'Cần cố gắng'};
+  var mlV={HTT:'Hoàn thành tốt',HT:'Hoàn thành',CHT:'Chưa hoàn thành'};
+  var nlV={'T':'Tốt','Đ':'Đạt','CCG':'Cần cố gắng'};
 
-  // Build context for AI
   var monLines=mons.map(function(m){
-    var lv=mL[g[m.mk]]||g[m.mk]||'Chưa đánh giá';
+    var lv=mlV[g[m.mk]]||g[m.mk]||'Chưa đánh giá';
     var sc=m.hd&&m.dk&&g[m.dk]?', điểm '+g[m.dk]:'';
-    return '- '+m.name+': '+lv+sc;
-  }).join('\n');
+    return m.name+': '+lv+sc;
+  }).join(' | ');
 
-  var pcLines=HB_PC.map(function(pc){
-    return '- '+pc[0]+': '+(nLbl[g[pc[1]]]||g[pc[1]]||'Chưa đánh giá');
-  }).join('\n');
-
-  var nlcLines=HB_NLC.map(function(nl){
-    return '- '+nl[0]+': '+(nLbl[g[nl[1]]]||g[nl[1]]||'Chưa đánh giá');
-  }).join('\n');
-
-  var nldLines=nld.map(function(nl){
-    return '- '+nl[0]+': '+(nLbl[g[nl[1]]]||g[nl[1]]||'Chưa đánh giá');
-  }).join('\n');
+  var pcLines=HB_PC.map(function(pc){return pc[0]+': '+(nlV[g[pc[1]]]||'Chưa');}).join(' | ');
+  var nlcLines=HB_NLC.map(function(nl){return nl[0]+': '+(nlV[g[nl[1]]]||'Chưa');}).join(' | ');
+  var nldLines=nld.map(function(nl){return nl[0]+': '+(nlV[g[nl[1]]]||'Chưa');}).join(' | ');
 
   var khenText='';
-  if(kq==='HTXS') khenText='Đạt danh hiệu Học sinh Xuất sắc';
-  else if(kq==='HTT') khenText='Đạt danh hiệu Học sinh Tiêu biểu hoàn thành tốt';
+  if(kq==='HTXS')khenText='- Đạt danh hiệu Học sinh Xuất sắc';
+  else if(kq==='HTT')khenText='- Đạt danh hiệu Học sinh Tiêu biểu hoàn thành tốt';
+  var nextCl=HBS.khoi>=5?'Hoàn thành chương trình lớp 5; Hoàn thành chương trình tiểu học.':'Hoàn thành chương trình lớp '+HBS.khoi+'; Được lên lớp '+(HBS.khoi+1)+'.';
 
-  var nextClass=(HBS.khoi>=5)?'':String(HBS.khoi+1);
-  var htText=HBS.khoi>=5?
-    'Hoàn thành chương trình lớp 5; Hoàn thành chương trình tiểu học.':
-    'Hoàn thành chương trình lớp '+HBS.khoi+'; Được lên lớp '+nextClass+'.';
-
-  var prompt='Bạn là giáo viên tiểu học Việt Nam, viết nhận xét học bạ theo Thông tư 27/2020/TT-BGDĐT.\n\n'+
-    'THÔNG TIN HỌC SINH:\n'+
-    '- Họ tên: '+HBS.ten+'\n'+
-    '- Giới tính: '+gt+'\n'+
-    '- Lớp: '+HBS.lop+' (Khối '+k+')\n'+
-    '- Năm học: '+HBY+'\n\n'+
-    'KẾT QUẢ MÔN HỌC:\n'+monLines+'\n\n'+
-    'PHẨM CHẤT CHỦ YẾU:\n'+pcLines+'\n\n'+
-    'NĂNG LỰC CHUNG:\n'+nlcLines+'\n\n'+
-    'NĂNG LỰC ĐẶC THÙ:\n'+nldLines+'\n\n'+
-    'KẾT QUẢ CHUNG: '+kqText+'\n\n'+
-    'YÊU CẦU: Viết nhận xét ngắn gọn (1-2 câu) cho từng mục. Dùng "em" khi đề cập học sinh. Ngôn ngữ tích cực, phù hợp tiểu học. Mức Tốt/HTT: khen ngợi cụ thể; Mức Đạt/HT: ghi nhận tích cực; Mức CCG/CHT: khuyến khích.\n\n'+
-    'Trả về JSON (chỉ JSON, không có text khác):\n'+
-    '{\n'+
-    '  "mon": {"Toán": "...", "Tiếng Việt": "..."},\n'+
-    '  "pc": {"Yêu nước": "..."},\n'+
-    '  "nlc": {"Tự chủ và tự học": "..."},\n'+
-    '  "nld": {"Ngôn ngữ": "..."},\n'+
-    '  "kqgd": "'+kqText+'.",\n'+
-    '  "khen": "'+khenText+'.",\n'+
-    '  "hoanthanh": "'+htText+'"\n'+
-    '}';
+  var prompt='Bạn là giáo viên tiểu học Việt Nam viết nhận xét học bạ theo TT27/2020.\n'+
+    'HS: '+HBS.ten+' | Giới tính: '+gt+' | Lớp '+HBS.lop+' | Năm học '+HBY+'\n'+
+    'Môn học: '+monLines+'\nPhẩm chất: '+pcLines+'\nNL chung: '+nlcLines+'\nNL đặc thù: '+nldLines+'\n'+
+    'Kết quả: '+(HB_KQL[kq]||'Hoàn thành')+'\n\n'+
+    'Viết nhận xét ngắn gọn 1-2 câu mỗi mục. Dùng "em". Tích cực, phù hợp tiểu học.\n'+
+    'Chỉ trả về JSON:\n{"mon":{"TÊN_MÔN":"NX"},"pc":{"TÊN_PC":"NX"},"nlc":{"TÊN_NLC":"NX"},"nld":{"TÊN_NLD":"NX"},'+
+    '"kqgd":"'+(HB_KQL[kq]||'Hoàn thành')+'","khen":"'+khenText+'","hoanthanh":"'+nextCl+'"}';
 
   var btn=T('hb-gen-btn');
-  if(btn){btn.disabled=true;btn.innerHTML='<span class="ai-spin-sm"></span>Đang tạo AI nhận xét...';}
-  toast('🤖 AI đang phân tích và sinh lời nhận xét...','');
+  if(btn){btn.disabled=true;btn.textContent='⏳ AI đang tạo nhận xét...';}
+  toast('🤖 AI đang phân tích kết quả và sinh lời nhận xét...','');
 
   try{
     var resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:2000,
-        messages:[{role:'user',content:prompt}]
-      })
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,
+        messages:[{role:'user',content:prompt}]})
     });
     var data=await resp.json();
-    if(data.error){throw new Error(data.error.message||'API error');}
+    if(data.error)throw new Error(data.error.message||'API error');
     var text=data.content&&data.content[0]?data.content[0].text:'';
     text=text.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-    var result=JSON.parse(text);
+    var res=JSON.parse(text);
 
-    // Apply to form fields
-    function applyNX(idKey, val){
+    function applyNX(idKey,val){
       var el=T('hb-'+idKey);
       if(el&&val){el.value=val;el.classList.add('ai-gen');hbEdit(idKey,val);}
     }
-    function monId(n){return n.replace(/\s+/g,'_').replace(/[()\//]/g,'');}
-
-    if(result.mon) Object.keys(result.mon).forEach(function(mn){applyNX('mon_'+monId(mn),result.mon[mn]);});
-    if(result.pc) Object.keys(result.pc).forEach(function(p){applyNX('pc_'+p.replace(/\s+/g,'_'),result.pc[p]);});
-    if(result.nlc) Object.keys(result.nlc).forEach(function(n){applyNX('nlc_'+n.replace(/\s+/g,'_').replace(/&/g,'va'),result.nlc[n]);});
-    if(result.nld) Object.keys(result.nld).forEach(function(n){applyNX('nld_'+n.replace(/\s+/g,'_'),result.nld[n]);});
-    if(result.kqgd) applyNX('kqgd',result.kqgd);
-    if(result.khen) applyNX('khen',result.khen);
-    if(result.hoanthanh) applyNX('hoanthanh',result.hoanthanh);
-
+    if(res.mon)Object.keys(res.mon).forEach(function(mn){applyNX('mon_'+monId(mn),res.mon[mn]);});
+    if(res.pc)Object.keys(res.pc).forEach(function(p){applyNX('pc_'+p.replace(/\s+/g,'_'),res.pc[p]);});
+    if(res.nlc)Object.keys(res.nlc).forEach(function(n){applyNX('nlc_'+n.replace(/\s+/g,'_').replace(/&/g,'va'),res.nlc[n]);});
+    if(res.nld)Object.keys(res.nld).forEach(function(n){applyNX('nld_'+n.replace(/\s+/g,'_'),res.nld[n]);});
+    if(res.kqgd)applyNX('kqgd',res.kqgd);
+    if(res.khen)applyNX('khen',res.khen);
+    if(res.hoanthanh)applyNX('hoanthanh',res.hoanthanh);
     hbSave();
-    toast('✅ AI đã sinh xong lời nhận xét cho '+HBS.ten+' — Hãy kiểm tra và chỉnh sửa nếu cần!','ok');
+    toast('✅ AI đã sinh xong nhận xét cho '+HBS.ten+' — Kiểm tra và chỉnh sửa nếu cần!','ok');
   }catch(e){
-    toast('❌ Lỗi AI: '+e.message+' — Hãy kiểm tra kết nối mạng.','err');
-    console.error('HB AI error:',e);
+    toast('❌ Lỗi AI: '+e.message,'err');
   }finally{
-    if(btn){btn.disabled=false;btn.innerHTML='🤖 Tạo nhận xét AI';}
+    if(btn){btn.disabled=false;btn.textContent='🤖 AI sinh nhận xét';}
   }
 }
 
-// ─── INIT HỌC BẠ PAGE ───
-function initHBPage(){
-  bldLop('hb-lop','');
-  hbFil();
-}
 
 window.addEventListener('load', function(){
   // Kiểm tra URL parameter ?gas=... để tự động cấu hình máy mới
