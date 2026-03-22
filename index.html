@@ -50,10 +50,29 @@ button,input,select,textarea{font-family:inherit}
 .sdot{width:7px;height:7px;border-radius:50%;background:#aaa;flex-shrink:0}
 .sdot.ok{background:#00e676}.sdot.err{background:#ff5252}.sdot.ld{background:#ffd740;animation:pulse .9s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.nav-bar{background:#fff;border-bottom:1px solid var(--bd);overflow-x:auto}
-.nav-i{max-width:1600px;margin:0 auto;padding:0 18px;display:flex;gap:1px;min-width:max-content}
-.ntab{padding:11px 15px;font-size:13px;font-weight:500;cursor:pointer;color:var(--tx3);border-bottom:2.5px solid transparent;background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap;transition:.13s}
-.ntab:hover{color:var(--p)}.ntab.on{color:var(--p);border-bottom-color:var(--p);font-weight:700}
+.nav-bar{background:linear-gradient(to bottom,#f8faff,#fff);border-bottom:2px solid #e0e8f5;overflow-x:auto;box-shadow:0 2px 8px rgba(20,86,176,.06)}
+.nav-i{max-width:1600px;margin:0 auto;padding:0 14px;display:flex;gap:3px;min-width:max-content;align-items:flex-end}
+.ntab{padding:10px 14px 9px;font-size:13px;font-weight:500;cursor:pointer;color:var(--tx3);border-bottom:3px solid transparent;border-top:none;border-left:none;border-right:none;white-space:nowrap;transition:all .15s;border-radius:8px 8px 0 0;background:none;position:relative;display:flex;align-items:center;gap:5px}
+.ntab:hover{color:var(--p);background:rgba(20,86,176,.06)}
+.ntab.on{color:#fff;font-weight:700;border-bottom-color:transparent}
+/* Màu riêng cho từng tab khi active */
+.ntab.on.t-hs{background:linear-gradient(135deg,#1565c0,#1976d2);box-shadow:0 -2px 8px rgba(21,101,192,.25)}
+.ntab.on.t-diem{background:linear-gradient(135deg,#00695c,#00897b);box-shadow:0 -2px 8px rgba(0,105,92,.25)}
+.ntab.on.t-status{background:linear-gradient(135deg,#e65100,#ef6c00);box-shadow:0 -2px 8px rgba(230,81,0,.25)}
+.ntab.on.t-tk{background:linear-gradient(135deg,#6a1b9a,#7b1fa2);box-shadow:0 -2px 8px rgba(106,27,154,.25)}
+.ntab.on.t-users{background:linear-gradient(135deg,#c62828,#d32f2f);box-shadow:0 -2px 8px rgba(198,40,40,.25)}
+.ntab.on.t-import{background:linear-gradient(135deg,#558b2f,#689f38);box-shadow:0 -2px 8px rgba(85,139,47,.25)}
+.ntab.on.t-settings{background:linear-gradient(135deg,#37474f,#455a64);box-shadow:0 -2px 8px rgba(55,71,79,.25)}
+.ntab.on.t-hocba{background:linear-gradient(135deg,#1456b0,#2193f3);box-shadow:0 -2px 8px rgba(20,86,176,.25)}
+/* Hover màu nhẹ */
+.ntab.t-hs:hover{color:#1565c0;background:rgba(21,101,192,.08)}
+.ntab.t-diem:hover{color:#00695c;background:rgba(0,105,92,.08)}
+.ntab.t-status:hover{color:#e65100;background:rgba(230,81,0,.08)}
+.ntab.t-tk:hover{color:#6a1b9a;background:rgba(106,27,154,.08)}
+.ntab.t-users:hover{color:#c62828;background:rgba(198,40,40,.08)}
+.ntab.t-import:hover{color:#558b2f;background:rgba(85,139,47,.08)}
+.ntab.t-settings:hover{color:#37474f;background:rgba(55,71,79,.08)}
+.ntab.t-hocba:hover{color:var(--p);background:rgba(20,86,176,.08)}
 .al{max-width:1600px;margin:0 auto;padding:15px 18px 48px;display:flex;gap:14px}
 .sb{width:194px;flex-shrink:0}.mc{flex:1;min-width:0}
 .sbox{background:var(--card);border-radius:var(--r12);box-shadow:var(--sh);border:1px solid var(--bd);margin-bottom:10px;overflow:hidden}
@@ -183,8 +202,19 @@ tbody td.c{text-align:center}
 .ccrd{background:var(--card);border-radius:var(--r12);box-shadow:var(--sh);border:1px solid var(--bd);padding:12px 14px}
 .ctit{font-size:12.5px;font-weight:600;color:var(--tx2);margin-bottom:8px}
 .kts{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
-.kt{padding:4px 12px;border-radius:var(--r8);font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--bd2);background:#fff;color:var(--tx2);transition:.11s}
-.kt:hover{border-color:var(--p);color:var(--p)}.kt.on{background:var(--p);color:#fff;border-color:var(--p)}
+.kt{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--bd2);background:#fff;color:var(--tx2);transition:all .15s}
+.kt:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.kt.on{color:#fff;border-color:transparent;transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.15)}
+.kt.k1.on{background:linear-gradient(135deg,#1565c0,#1976d2)}
+.kt.k2.on{background:linear-gradient(135deg,#00695c,#00897b)}
+.kt.k3.on{background:linear-gradient(135deg,#e65100,#ef6c00)}
+.kt.k4.on{background:linear-gradient(135deg,#6a1b9a,#7b1fa2)}
+.kt.k5.on{background:linear-gradient(135deg,#c62828,#d32f2f)}
+.kt.k1:hover{border-color:#1565c0;color:#1565c0}
+.kt.k2:hover{border-color:#00695c;color:#00695c}
+.kt.k3:hover{border-color:#e65100;color:#e65100}
+.kt.k4:hover{border-color:#6a1b9a;color:#6a1b9a}
+.kt.k5:hover{border-color:#c62828;color:#c62828}
 .uf{display:grid;grid-template-columns:1fr 1fr;gap:11px}
 .uf-full{grid-column:1/-1}
 .ufi{display:flex;flex-direction:column;gap:5px}
@@ -328,14 +358,14 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
 </div></div>
 
 <div class="nav-bar"><div class="nav-i">
-  <button class="ntab on" onclick="gp('pg-hs',this)">👥 Học sinh</button>
-  <button class="ntab" onclick="gp('pg-diem',this)">✏️ Nhập điểm</button>
-  <button class="ntab" onclick="gp('pg-status',this)">📊 Trạng thái</button>
-  <button class="ntab" onclick="gp('pg-tk',this)">📈 Thống kê</button>
-  <button class="ntab ao" onclick="gp('pg-users',this)">👤 Tài khoản</button>
-  <button class="ntab ao" onclick="gp('pg-import',this)">📥 Nhập HS</button>
-  <button class="ntab ao" onclick="gp('pg-settings',this)">⚙️ Cài đặt</button>
-  <button class="ntab" onclick="gp('pg-hocba',this)">📖 Học bạ AI</button>
+  <button class="ntab t-hs on" onclick="gp('pg-hs',this)">👥 Học sinh</button>
+  <button class="ntab t-diem" onclick="gp('pg-diem',this)">✏️ Nhập điểm</button>
+  <button class="ntab t-status" onclick="gp('pg-status',this)">📊 Trạng thái</button>
+  <button class="ntab t-tk" onclick="gp('pg-tk',this)">📈 Thống kê</button>
+  <button class="ntab t-users ao" onclick="gp('pg-users',this)">👤 Tài khoản</button>
+  <button class="ntab t-import ao" onclick="gp('pg-import',this)">📥 Nhập HS</button>
+  <button class="ntab t-settings ao" onclick="gp('pg-settings',this)">⚙️ Cài đặt</button>
+  <button class="ntab t-hocba" onclick="gp('pg-hocba',this)">📖 Học bạ AI</button>
 </div></div>
 
 <div class="al">
@@ -389,11 +419,11 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
 <div class="page" id="pg-diem">
   <div id="diem-ban"></div>
   <div class="kts" id="diem-kts">
-    <div class="kt on" onclick="dK(1,this)">Khối 1</div>
-    <div class="kt" onclick="dK(2,this)">Khối 2</div>
-    <div class="kt" onclick="dK(3,this)">Khối 3</div>
-    <div class="kt" onclick="dK(4,this)">Khối 4</div>
-    <div class="kt" onclick="dK(5,this)">Khối 5</div>
+    <div class="kt k1 on" onclick="dK(1,this)">🔵 Khối 1</div>
+    <div class="kt k2" onclick="dK(2,this)">🟢 Khối 2</div>
+    <div class="kt k3" onclick="dK(3,this)">🟠 Khối 3</div>
+    <div class="kt k4" onclick="dK(4,this)">🟣 Khối 4</div>
+    <div class="kt k5" onclick="dK(5,this)">🔴 Khối 5</div>
   </div>
   <div class="tb">
     <select id="d-lop" onchange="dFil()"><option value="">Tất cả lớp</option></select>
@@ -423,10 +453,12 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
     <div style="padding:11px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <strong style="font-size:14px">📋 Thống kê chi tiết</strong>
       <div class="kts" style="margin:0" id="tk-kts">
-        <div class="kt on" onclick="tkK(0,this)">Toàn trường</div>
-        <div class="kt" onclick="tkK(1,this)">Khối 1</div><div class="kt" onclick="tkK(2,this)">Khối 2</div>
-        <div class="kt" onclick="tkK(3,this)">Khối 3</div><div class="kt" onclick="tkK(4,this)">Khối 4</div>
-        <div class="kt" onclick="tkK(5,this)">Khối 5</div>
+        <div class="kt on" onclick="tkK(0,this)" style="border-radius:20px">🏫 Toàn trường</div>
+        <div class="kt k1" onclick="tkK(1,this)">🔵 Khối 1</div>
+        <div class="kt k2" onclick="tkK(2,this)">🟢 Khối 2</div>
+        <div class="kt k3" onclick="tkK(3,this)">🟠 Khối 3</div>
+        <div class="kt k4" onclick="tkK(4,this)">🟣 Khối 4</div>
+        <div class="kt k5" onclick="tkK(5,this)">🔴 Khối 5</div>
       </div>
     </div>
     <div style="overflow-x:auto;padding:12px 14px">
