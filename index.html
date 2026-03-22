@@ -234,14 +234,16 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
 /* Học bạ: full width khi active */
 #pg-hocba .hb-tbl td, #pg-hocba .hb-tbl th { font-size: 11.5pt; }
 .pg-hocba-active .sb { display: none !important; }
-.pg-hocba-active .mc { flex: 1; }
+.pg-hocba-active .mc { flex: 1; min-width: 0; overflow-x: hidden; }
+#pg-hocba { width: 100%; overflow-x: hidden; }
+#pg-hocba .hb-sect, #pg-hocba .tw, #pg-hocba > div { max-width: 100%; }
 @media(max-width:880px){.sb{display:none}.cg{grid-template-columns:1fr}}
 @media(max-width:580px){.al{padding:10px 10px 32px}.fg2,.fg3,.tt27g,.uf{grid-template-columns:1fr}.uf-full{grid-column:1}}
 
 /* ══ HỌC BẠ AI MODULE ══ */
 .hb-info{display:flex;flex-wrap:wrap;gap:14px;padding:10px 14px;background:var(--p3);border-bottom:1px solid var(--bd);font-size:12.5px}
 .hb-info span{color:var(--tx2)}.hb-info strong{color:var(--tx)}
-.hb-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.hb-tbl{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed}
 .hb-tbl th{background:#dde4f5;font-weight:700;padding:8px 10px;border:1.5px solid #b8c5e0;text-align:center;font-size:11.5px;white-space:nowrap}
 .hb-tbl th.tl{text-align:left;min-width:130px}
 .hb-tbl td{padding:6px 9px;border:1px solid var(--bd2);vertical-align:top}
@@ -252,8 +254,8 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
 .hbnx textarea:hover{border-color:var(--bd2);background:#fafbff}
 .hbnx textarea:focus{border-color:var(--p);background:#f5f9ff;outline:none;box-shadow:0 0 0 2px rgba(20,86,176,.08)}
 .hbnx textarea.ai-gen{color:#0d3d82;background:#f0f6ff;border-color:rgba(20,86,176,.25)}
-.hb-sect{background:var(--card);border-radius:var(--r12);border:1px solid var(--bd);margin-bottom:12px;overflow:hidden;box-shadow:var(--sh)}
-.hb-sect-h{background:linear-gradient(135deg,#0d3d82,#1456b0);color:#fff;padding:9px 14px;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:space-between}
+.hb-sect{background:var(--card);border-radius:var(--r12);border:1px solid var(--bd);margin-bottom:12px;overflow:hidden;box-shadow:var(--sh);width:100%;display:block}
+.hb-sect-h{background:linear-gradient(135deg,#0d3d82,#1456b0);color:#fff;padding:9px 14px;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:space-between;width:100%;box-sizing:border-box}
 .hb-sect-h span{font-size:11px;opacity:.75;font-weight:400}
 .hb-final{padding:12px 14px}
 .hb-final .fl{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
@@ -1877,23 +1879,29 @@ function openHB(idx){
   T('hb-editor').style.display='block';
   T('hb-tb-name').textContent=HBS.ten;
   T('hb-tb-info').textContent='Lớp '+HBS.lop+' · '+HBS.ns;
-  // Đảm bảo grades đã được load từ GAS
-  var g=grades[HBS.ma]||{};
-  var hasGrades=!!(g.mon_Toán||g['mon_Tiếng_việt']||g.kqgd);
-  if(!hasGrades && GAS){
-    // Chưa có điểm → sync để lấy điểm mới nhất
-    T('hb-content').innerHTML='<div style="text-align:center;padding:40px;color:var(--tx3)"><div style="font-size:28px;margin-bottom:10px">🔄</div><div>Đang tải điểm từ Google Sheets...</div></div>';
+  // Render ngay với data hiện có (không chờ sync)
+  renderHBContent();
+  // Sau đó sync ngầm để cập nhật điểm mới nhất (nếu có GAS)
+  if(GAS){
+    var syncTimeout=setTimeout(function(){
+      // Timeout 8s - nếu sync chưa xong thì thôi
+    },8000);
     gasCall({action:'getGrades'}).then(function(r){
+      clearTimeout(syncTimeout);
       if(r.ok){
         var remote=r.data||{};
-        Object.keys(remote).forEach(function(k){grades[k]=remote[k];});
-        try{localStorage.setItem('_grades',JSON.stringify(grades));}catch(e){}
-        merge();
+        var updated=false;
+        Object.keys(remote).forEach(function(k){
+          if(JSON.stringify(grades[k])!==JSON.stringify(remote[k])){grades[k]=remote[k];updated=true;}
+        });
+        if(updated){
+          try{localStorage.setItem('_grades',JSON.stringify(grades));}catch(e){}
+          merge();
+          // Chỉ re-render nếu đang mở HS này
+          if(HBS&&T('hb-editor')&&T('hb-editor').style.display!=='none') renderHBContent();
+        }
       }
-      renderHBContent();
-    }).catch(function(){renderHBContent();});
-  } else {
-    renderHBContent();
+    }).catch(function(){clearTimeout(syncTimeout);});
   }
 }
 function hbBack(){T('hb-editor').style.display='none';T('hb-selector').style.display='block';HBS=null;}
@@ -2254,9 +2262,8 @@ async function hbGenAI(){
         else if(gasRes.error&&gasRes.error.indexOf('Unknown POST action')>=0){
           // Code.gs chưa có aiChat → báo user update
           var errMsg = '⚠️ Cần cập nhật Code.gs:\n1. Tải file Code.gs mới\n2. Dán vào Apps Script → Lưu\n3. Deploy → Phiên bản mới\n4. Vào Project Settings → Script Properties → thêm:\n   ANTHROPIC_API_KEY = sk-ant-api03-...\n(Lấy tại: console.anthropic.com)';
-          toast('❌ Code.gs chưa có tính năng AI. Xem console để biết cách cài đặt.','err');
-          console.error(errMsg);
-          throw new Error('Code.gs chưa cập nhật — xem console (F12) để biết cách cài đặt AI');
+          console.warn('Code.gs chưa có aiChat, thử direct call với user API key...');
+          gasOk=false; // fallthrough sang direct call với user API key
         } else {
           throw new Error(gasRes.error||'GAS AI error');
         }
@@ -2290,16 +2297,26 @@ async function hbGenAI(){
         });
         var data=await resp.json();
         if(data.error){
-          if(data.error.type==='authentication_error'){
+          if(data.error.type==='authentication_error'||data.error.type==='invalid_request_error'){
             localStorage.removeItem('anthropic_key');
-            throw new Error('API Key không hợp lệ. Vui lòng thử lại.');
+            throw new Error('API Key không hợp lệ hoặc hết hạn. Nhấn "AI sinh nhận xét" lại để nhập key mới.');
           }
           throw new Error(data.error.message||'API error');
         }
         aiResult=data.content&&data.content[0]?data.content[0].text:'';
       }catch(fetchErr){
         if(fetchErr.message.indexOf('Failed to fetch')>=0||fetchErr.message.indexOf('NetworkError')>=0){
-          throw new Error('Trình duyệt chặn kết nối AI trực tiếp (CORS). Giải pháp: Cập nhật Code.gs mới → Deploy → Thêm ANTHROPIC_API_KEY vào Script Properties.');
+          // Hiện hướng dẫn rõ ràng
+          var msg='⚠️ Trình duyệt chặn kết nối AI trực tiếp.\n\n'+
+            'Để dùng AI, cần cập nhật Code.gs:\n'+
+            '1. Tải file Code.gs mới\n'+
+            '2. Dán vào Apps Script → Lưu\n'+
+            '3. Deploy → Phiên bản mới\n'+
+            '4. Vào Project Settings → Script Properties → thêm:\n'+
+            '   ANTHROPIC_API_KEY = sk-ant-api03-...\n'+
+            '(Lấy tại: console.anthropic.com)';
+          console.warn('Cần cập nhật Code.gs:', msg);
+          throw new Error('Code.gs chưa cập nhật — xem console (F12) để biết cách cài đặt AI');
         }
         throw fetchErr;
       }
