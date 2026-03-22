@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Lexend:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/docx@8.2.2/build/index.js"></script>
 <style>
 :root{
   --p:#1456b0;--pd:#0d3d82;--p2:#1a6ed8;--pl:#e8f1fd;--p3:#eef4fc;
@@ -564,7 +565,8 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
         <div style="font-size:12px;color:rgba(255,255,255,.78);margin-top:3px">AI tự động sinh lời nhận xét · GV chỉnh sửa · In đúng mẫu TT27/2020/TT-BGDĐT</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="hbExpClass()">📚 Xuất học bạ cả lớp</button>
+        <button class="btn" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="hbExpClass()">📚 Xuất HTML cả lớp</button>
+        <button class="btn" style="background:#2b579a;color:#fff" onclick="hbExpClassWord()">📄 Xuất Word cả lớp</button>
         <select id="hb-year-sel" onchange="HBY=this.value" style="height:34px;border:1px solid rgba(255,255,255,.3);border-radius:var(--r8);padding:0 10px;background:rgba(255,255,255,.15);color:#fff;font-size:12.5px;cursor:pointer;outline:none">
           <option value="2025-2026" selected>2025–2026</option>
           <option value="2024-2025">2024–2025</option>
@@ -602,7 +604,8 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
       </select>
       <button class="btn bpu" id="hb-gen-btn" onclick="hbGenAI()">🤖 AI sinh nhận xét</button>
       <button class="btn bg" onclick="hbSave()">💾 Lưu</button>
-      <button class="btn bp" onclick="hbPrint()">🖨 In học bạ</button>
+      <button class="btn bp" onclick="hbPrint()">🖨 In/PDF</button>
+      <button class="btn" style="background:#2b579a;color:#fff" onclick="hbExportWord()">📄 Xuất Word</button>
     </div>
     <div id="hb-content"></div>
   </div>
@@ -2240,20 +2243,37 @@ async function hbGenAI(){
   toast('🤖 AI đang phân tích kết quả và sinh lời nhận xét...','');
 
   try{
-    // Gọi qua GAS proxy để tránh CORS khi deploy trên GitHub Pages
     var aiResult;
+    // Thử GAS proxy trước (production), fallback direct nếu GAS lỗi
+    var gasOk = false;
     if(GAS){
-      aiResult=await gasPost({action:'aiChat',prompt:prompt});
-      if(!aiResult.ok) throw new Error(aiResult.error||'GAS AI error');
-      aiResult=aiResult.text||'';
-    } else {
-      // Fallback: direct call (chỉ hoạt động trong localhost/artifact)
+      try{
+        var gasRes=await gasPost({action:'aiChat',prompt:prompt});
+        if(gasRes.ok){aiResult=gasRes.text||'';gasOk=true;}
+        else if(gasRes.error&&gasRes.error.indexOf('Unknown POST action')>=0){
+          // Code.gs chưa có aiChat → báo user update
+          throw new Error('Code.gs chưa được cập nhật. Hãy dán Code.gs mới vào Apps Script và Deploy lại!');
+        } else {
+          throw new Error(gasRes.error||'GAS AI error');
+        }
+      }catch(gasErr){
+        if(gasErr.message.indexOf('Code.gs')>=0) throw gasErr;
+        // GAS lỗi khác → thử direct call
+        console.warn('GAS AI failed, trying direct:', gasErr.message);
+      }
+    }
+    if(!gasOk){
+      // Direct call (hoạt động khi chạy trong Claude artifact hoặc localhost)
       var resp=await fetch('https://api.anthropic.com/v1/messages',{
         method:'POST',
-        headers:{'Content-Type':'application/json','anthropic-dangerous-request-allowed':'true'},
+        headers:{
+          'Content-Type':'application/json',
+          'anthropic-dangerous-request-allowed':'true'
+        },
         body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,
           messages:[{role:'user',content:prompt}]})
       });
+      if(!resp.ok) throw new Error('Lỗi kết nối AI ('+resp.status+'). Hãy cập nhật Code.gs và thêm API Key.');
       var data=await resp.json();
       if(data.error)throw new Error(data.error.message||'API error');
       aiResult=data.content&&data.content[0]?data.content[0].text:'';
@@ -2282,6 +2302,266 @@ async function hbGenAI(){
   }
 }
 
+
+
+// ══════════════════════════════════════════════════
+//  XUẤT FILE WORD (.docx) — dùng docx.js v8
+// ══════════════════════════════════════════════════
+
+function buildDocxSections(hs){
+  var k=String(hs.khoi),g=grades[hs.ma]||{};
+  var mons=HB_MONS[k]||HB_MONS['1'];
+  var nld=(hs.khoi>=4)?HB_NLD45:HB_NLD123;
+  var kq=cTT(hs.ma,hs.khoi);
+  var hbd=getHBData(hs.ma)||{};
+  var cm=hbd[HBY]||{};
+  var gt=hs.gioi_tinh||hs.gt||'Nam';
+  var sn=localStorage.getItem('school_name_full')||'Trường Tiểu học Diễn Liên';
+  var sa=localStorage.getItem('school_addr')||'Xã Quảng Châu · Tỉnh Nghệ An';
+  function gv(key){return cm[key]||'';}
+  var kqText=HB_KQL[kq]||'Hoàn thành';
+  var nextCl=hs.khoi>=5?'Hoàn thành CT lớp 5; Hoàn thành CT tiểu học.':'Hoàn thành CT lớp '+hs.khoi+'; Được lên lớp '+(hs.khoi+1)+'.';
+  var now=new Date();
+  var addrParts=sa.split('·');
+  var xa=(addrParts[0]||'').trim();
+  var dateStr=xa+', ngày '+now.getDate()+' tháng '+(now.getMonth()+1)+' năm '+now.getFullYear();
+  var D=window.docx;
+  var W=D.WidthType.DXA;
+  var NONE=D.BorderStyle.NONE;
+
+  function p(text,sz,bold,center,indent,italic,pageBreak){
+    return new D.Paragraph({
+      pageBreakBefore:!!pageBreak,
+      alignment:center?D.AlignmentType.CENTER:D.AlignmentType.LEFT,
+      indent:indent?{left:400}:undefined,
+      spacing:{after:80},
+      children:[new D.TextRun({text:text||'',bold:!!bold,size:sz||22,italics:!!italic,font:'Times New Roman'})]
+    });
+  }
+  function pRuns(runs,after){
+    return new D.Paragraph({
+      spacing:{after:after||80},
+      children:runs.map(function(r){
+        return new D.TextRun({text:r.t||'',bold:!!r.b,size:r.s||22,italics:!!r.i,font:'Times New Roman'});
+      })
+    });
+  }
+  function br(n){return new D.Paragraph({spacing:{after:(n||1)*200},children:[new D.TextRun('')]});}
+  function tbl(headers,rows,colW){
+    var allRows=[];
+    allRows.push(new D.TableRow({tableHeader:true,children:headers.map(function(h,i){
+      return new D.TableCell({
+        width:{size:colW[i]||2000,type:W},
+        shading:{fill:'D9D9D9'},
+        children:[p(h,20,true,true)]
+      });
+    })}));
+    rows.forEach(function(row){
+      allRows.push(new D.TableRow({children:row.map(function(cell,i){
+        return new D.TableCell({
+          width:{size:colW[i]||2000,type:W},
+          children:[new D.Paragraph({
+            alignment:i>0?D.AlignmentType.CENTER:D.AlignmentType.LEFT,
+            spacing:{after:40},
+            children:[new D.TextRun({text:String(cell||''),size:20,font:'Times New Roman'})]
+          })]
+        });
+      })}));
+    });
+    return new D.Table({rows:allRows,width:{size:9200,type:W},spacing:{after:200}});
+  }
+  function sigTbl(left,right){
+    function sigCell(title,italic,name){
+      return new D.TableCell({
+        borders:{top:{style:NONE},bottom:{style:NONE},left:{style:NONE},right:{style:NONE},insideH:{style:NONE},insideV:{style:NONE}},
+        children:[
+          p(title,22,true,true),
+          p(italic,20,false,true,false,true),
+          new D.Paragraph({spacing:{before:700,after:40},alignment:D.AlignmentType.CENTER,
+            children:[new D.TextRun({text:name||'',bold:true,size:22,font:'Times New Roman'})]})
+        ]
+      });
+    }
+    return new D.Table({
+      rows:[new D.TableRow({children:[sigCell(left.title,left.sub,left.name),sigCell(right.title,right.sub,right.name)]})],
+      width:{size:9200,type:W},
+      borders:{top:{style:NONE},bottom:{style:NONE},left:{style:NONE},right:{style:NONE},insideH:{style:NONE},insideV:{style:NONE}}
+    });
+  }
+
+  var ML={'HTT':'T','HT':'H','CHT':'C'};
+  var NL={'T':'T','Đ':'Đ','CCG':'C'};
+  function mId(n){return n.replace(/\s+/g,'_').replace(/[()\/]/g,'');}
+
+  var out=[];
+
+  // ── BÌA ──
+  out=out.concat([
+    br(3),
+    p('BỘ GIÁO DỤC VÀ ĐÀO TẠO',24,false,true),
+    br(4),
+    p('HỌC BẠ',52,true,true),
+    p('TIỂU HỌC',32,false,true),
+    br(4),
+    p('Họ và tên học sinh: '+hs.ten.toUpperCase(),24,true,false),
+    p('Trường: '+sn,22,false,false),
+    p('Xã (Phường, Thị trấn): '+xa,22,false,false),
+    p('Tỉnh (Thành phố): '+(addrParts[1]||'').trim(),22,false,false),
+  ]);
+
+  // ── THÔNG TIN ──
+  out.push(p('',22,false,false,false,false,true));
+  out=out.concat([
+    p('HỌC BẠ',32,true,true),
+    pRuns([{t:'Họ và tên học sinh: ',b:true},{t:hs.ten.toUpperCase(),b:true},{t:'      Giới tính: '+gt}]),
+    pRuns([{t:'Ngày, tháng, năm sinh: '},{t:hs.ns,b:true}]),
+    p('Nơi sinh: .............................................................................'),
+    p('Quê quán: .............................................................................'),
+    p('Nơi ở hiện nay: .............................................................................'),
+    p('Họ và tên cha: .............................................................................'),
+    p('Họ và tên mẹ: .............................................................................'),
+    br(1),
+    new D.Paragraph({spacing:{after:600},children:[
+      new D.TextRun({text:dateStr,italics:true,size:22,font:'Times New Roman'}),
+      new D.TextRun({text:'       Hiệu trưởng',bold:true,size:22,font:'Times New Roman'})
+    ]}),
+    p(gv('ht_name')||'',22,true,true),
+    br(),
+    p('QUÁ TRÌNH HỌC TẬP',22,true,true),
+    tbl(
+      ['Năm học','Lớp','Tên trường','Số đăng bộ','Ngày nhập học'],
+      [[HBY,hs.lop,sn,hs.ma.slice(-3),'01/09/'+HBY.split('-')[0]],
+       ['','','','',''],['','','','',''],['','','','','']],
+      [1200,600,3400,1000,1500]
+    )
+  ]);
+
+  // ── KẾT QUẢ ──
+  out.push(p('',22,false,false,false,false,true));
+  out=out.concat([
+    pRuns([{t:'Họ và tên học sinh: ',b:true},{t:hs.ten},{t:'      Lớp: ',b:true},{t:hs.lop}]),
+    pRuns([
+      {t:'Chiều cao: '+(gv('chieucao')||'...')+' cm   '},
+      {t:'Cân nặng: '+(gv('cannang')||'...')+' kg   '},
+      {t:'Số ngày nghỉ có phép: '+(gv('nghinphep')||'0')+'   '},
+      {t:'Không phép: '+(gv('nghikphep')||'0')}
+    ]),
+    br(),
+    p('1. Các môn học và hoạt động giáo dục',22,true),
+    tbl(
+      ['Môn học và hoạt động GD','Mức đạt được','Điểm KTĐK','Nhận xét của giáo viên'],
+      mons.map(function(m){
+        var mv=g[m.mk]||'',dv=m.hd&&m.dk?(g[m.dk]||''):'';
+        return [m.name,ML[mv]||mv,dv,gv('mon_'+mId(m.name))];
+      }),
+      [3000,900,800,3500]
+    ),
+    br(),
+    p('2. Những phẩm chất chủ yếu',22,true),
+    tbl(
+      ['Phẩm chất','Mức đạt được','Nhận xét của giáo viên'],
+      HB_PC.map(function(pc){
+        var mv=g[pc[1]]||'';
+        return [pc[0],NL[mv]||mv,gv('pc_'+pc[0].replace(/\s+/g,'_'))];
+      }),
+      [2200,900,5100]
+    ),
+    br(),
+    p('3. Những năng lực cốt lõi',22,true),
+    p('3.1 Những năng lực chung',22,false),
+    tbl(
+      ['Năng lực','Mức đạt được','Nhận xét của giáo viên'],
+      HB_NLC.map(function(nl){
+        var mv=g[nl[1]]||'';
+        return [nl[0],NL[mv]||mv,gv('nlc_'+nl[0].replace(/\s+/g,'_').replace(/&/g,'va'))];
+      }),
+      [2800,900,4500]
+    ),
+    p('3.2 Những năng lực đặc thù',22,false),
+    tbl(
+      ['Năng lực','Mức đạt được','Nhận xét của giáo viên'],
+      nld.map(function(nl){
+        var mv=g[nl[1]]||'';
+        return [nl[0],NL[mv]||mv,gv('nld_'+nl[0].replace(/\s+/g,'_'))];
+      }),
+      [2800,900,4500]
+    ),
+    br(),
+    pRuns([{t:'4. Đánh giá kết quả giáo dục: ',b:true},{t:gv('kqgd')||kqText}]),
+    pRuns([{t:'5. Khen thưởng: ',b:true}]),
+    p(gv('khen')||'',22,false,false,true),
+    pRuns([{t:'6. Hoàn thành chương trình lớp học: ',b:true}]),
+    p(gv('hoanthanh')||nextCl,22,false,false,true),
+    br(),
+    new D.Paragraph({alignment:D.AlignmentType.RIGHT,spacing:{after:600},
+      children:[new D.TextRun({text:dateStr,italics:true,size:22,font:'Times New Roman'})]}),
+    sigTbl(
+      {title:'Xác nhận của Hiệu trưởng',sub:'(Ký, ghi rõ họ tên và đóng dấu)',name:gv('ht_name')},
+      {title:'Giáo viên chủ nhiệm',sub:'(Ký và ghi rõ họ tên)',name:gv('gvcn_name')}
+    )
+  ]);
+
+  return out;
+}
+
+async function hbExportWord(){
+  if(!HBS){toast('Chưa chọn học sinh','warn');return;}
+  if(!window.docx){toast('Thư viện Word chưa tải xong, thử lại sau vài giây','warn');return;}
+  hbSave();
+  loader('Đang tạo file Word...');
+  try{
+    var doc=new window.docx.Document({
+      styles:{default:{document:{run:{font:'Times New Roman',size:22}}}},
+      sections:[{
+        properties:{page:{margin:{top:720,right:720,bottom:720,left:1080}}},
+        children:buildDocxSections(HBS)
+      }]
+    });
+    var blob=await window.docx.Packer.toBlob(doc);
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='HocBa_'+HBS.ten.replace(/\s+/g,'_')+'_'+HBS.lop+'_'+HBY+'.docx';
+    document.body.appendChild(a);a.click();
+    document.body.removeChild(a);
+    loader();
+    toast('✅ Đã xuất Word: '+HBS.ten,'ok');
+  }catch(e){loader();toast('❌ Lỗi xuất Word: '+e.message,'err');console.error(e);}
+}
+
+async function hbExpClassWord(){
+  var lop=T('hb-lop').value;
+  if(!lop){toast('Hãy chọn lớp cụ thể trước','warn');return;}
+  if(!window.docx){toast('Thư viện Word chưa tải xong','warn');return;}
+  var hsLop=allS.filter(function(s){return s.lop===lop;});
+  if(!hsLop.length){toast('Không có học sinh','warn');return;}
+  loader('Đang tạo Word lớp '+lop+' ('+hsLop.length+' HS)...');
+  try{
+    var allCh=[];
+    hsLop.forEach(function(hs,i){
+      var sects=buildDocxSections(hs);
+      if(i>0){
+        // Thêm page break trước mỗi HS (trừ HS đầu tiên)
+        sects.unshift(new window.docx.Paragraph({pageBreakBefore:true,children:[]}));
+      }
+      allCh=allCh.concat(sects);
+    });
+    var doc=new window.docx.Document({
+      styles:{default:{document:{run:{font:'Times New Roman',size:22}}}},
+      sections:[{
+        properties:{page:{margin:{top:720,right:720,bottom:720,left:1080}}},
+        children:allCh
+      }]
+    });
+    var blob=await window.docx.Packer.toBlob(doc);
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='HocBa_Lop'+lop+'_'+HBY+'_('+hsLop.length+'HS).docx';
+    document.body.appendChild(a);a.click();
+    document.body.removeChild(a);
+    loader();
+    toast('✅ Xuất Word lớp '+lop+': '+hsLop.length+' học sinh','ok');
+  }catch(e){loader();toast('❌ Lỗi: '+e.message,'err');console.error(e);}
+}
 
 window.addEventListener('load', function(){
   // Kiểm tra URL parameter ?gas=... để tự động cấu hình máy mới
