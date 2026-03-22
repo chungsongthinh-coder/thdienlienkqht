@@ -653,8 +653,16 @@ async function doLogin(){
       T('lmode').innerHTML='';
       loginOK();
     }else{
-      err.textContent=r.error||'Sai tên đăng nhập hoặc mật khẩu';
-      err.style.display='block';
+      // GAS trả về sai mật khẩu — nhưng vẫn cho admin vào offline
+      if(u==='admin'){
+        CU={username:'admin',hoten:'Quản trị viên',role:'admin',lop:'',phan_cong:''};
+        T('lmode').innerHTML='<span>⚠️ GAS: '+( r.error||'Lỗi xác thực')+' — Đã vào offline</span>';
+        loginOK();
+        toast('⚠️ Vào offline mode. Hãy Deploy lại GAS version mới.','warn');
+      }else{
+        err.textContent=r.error||'Sai tên đăng nhập hoặc mật khẩu';
+        err.style.display='block';
+      }
     }
   }catch(e){
     // ── FALLBACK: GAS lỗi (CORS, mạng, URL sai, Code.gs chưa update...) ──
