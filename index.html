@@ -875,14 +875,15 @@ function isGVCN(lop){
 // ═══ GAS API ═══
 function gasCall(p){
   if(!GAS) return Promise.reject(new Error('GAS chưa cấu hình'));
-  return fetch(GAS+'?'+new URLSearchParams(p).toString(),{redirect:'follow',mode:'cors'}).then(function(r){
+  return fetch(GAS+'?'+new URLSearchParams(p).toString(),{method:'GET',redirect:'follow'}).then(function(r){
     if(!r.ok) throw new Error('HTTP '+r.status);
     return r.json();
   });
 }
 function gasPost(d){
   if(!GAS) return Promise.reject(new Error('GAS chưa cấu hình'));
-  return fetch(GAS+'?gaspost=1&d='+encodeURIComponent(JSON.stringify(d)),{redirect:'follow',mode:'cors'}).then(function(r){
+  var url=GAS+'?gaspost=1&d='+encodeURIComponent(JSON.stringify(d));
+  return fetch(url,{method:'GET',redirect:'follow'}).then(function(r){
     if(!r.ok) throw new Error('HTTP '+r.status);
     return r.json();
   });
