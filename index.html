@@ -557,6 +557,7 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
         <button class="btn bo" onclick="syncNow()">🔄 Đồng bộ dữ liệu</button>
         <button class="btn bout" onclick="upStudents()">⬆ Upload HS lên Sheets</button>
       <button class="btn bout" onclick="(function(){localStorage.removeItem('gemini_key');toast('Đã xóa API Key AI','ok');})()" title="Xóa Anthropic API Key đã lưu">🔑 Xóa AI Key</button>
+      <button class="btn bout" onclick="fixSheetsStructure()" title="Sửa cấu trúc sheet Điểm nếu bị lỗi">🔧 Sửa cấu trúc Sheets</button>
       </div>
     </div>
     <div id="conn-res"></div>
@@ -1400,12 +1401,29 @@ function saveCld(){
     .then(function(r){
       loader();
       if(r.ok){
-        // Lưu thành công lên Sheets → cập nhật cache local
         try{localStorage.setItem('_grades',JSON.stringify(grades));}catch(e){}
         toast('☁️ Đã lưu lên Google Sheets: '+s.ten,'ok');
       } else {
-        // Lưu thất bại - xóa khỏi local để tránh dữ liệu lỗi
-        toast('❌ Lỗi lưu Sheets: '+r.error+' - Thử lại!','err');
+        var errMsg = r.error||'';
+        if(errMsg.indexOf('cột')>=0||errMsg.indexOf('column')>=0||errMsg.indexOf('tối thiểu')>=0){
+          // Lỗi cấu trúc sheet → tự fix rồi lưu lại
+          toast('🔧 Đang sửa cấu trúc Sheets, chờ...','warn');
+          gasPost({action:'fixDiemSheet'}).then(function(fr){
+            loader('Đang lưu lại...');
+            gasPost({action:'saveGrade',ma:s.ma,grades:g,user:CU?CU.username:'?'})
+              .then(function(r2){
+                loader();
+                if(r2.ok){
+                  try{localStorage.setItem('_grades',JSON.stringify(grades));}catch(e){}
+                  toast('☁️ Đã sửa và lưu thành công: '+s.ten,'ok');
+                } else {
+                  toast('❌ Vẫn lỗi: '+r2.error,'err');
+                }
+              }).catch(function(){loader();toast('❌ Lỗi kết nối','err');});
+          });
+        } else {
+          toast('❌ Lỗi lưu Sheets: '+errMsg,'err');
+        }
       }
     })
     .catch(function(e){
@@ -2724,6 +2742,16 @@ async function hbExpClassWord(){
     loader();
     toast('✅ Xuất Word lớp '+lop+': '+hsLop.length+' học sinh','ok');
   }catch(e){loader();toast('❌ Lỗi: '+e.message,'err');console.error(e);}
+}
+
+function fixSheetsStructure(){
+  if(!GAS){toast('Chưa có GAS URL','warn');return;}
+  loader('Đang kiểm tra và sửa cấu trúc Sheets...');
+  gasPost({action:'fixDiemSheet'}).then(function(r){
+    loader();
+    if(r.ok) toast('✅ '+r.message,'ok');
+    else toast('❌ '+r.error,'err');
+  }).catch(function(e){loader();toast('❌ '+e.message,'err');});
 }
 
 function saveApiKey(){
