@@ -700,8 +700,7 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
     <div class="mft-l" id="mStat"></div>
     <div class="mft-r">
       <button class="btn bout" onclick="cm('mBg')">Hủy</button>
-      <button class="btn bg" onclick="saveLoc()">💾 Lưu tạm</button>
-      <button class="btn bp" onclick="saveCld()">☁️ Lưu lên Sheets</button>
+      <button class="btn bp" onclick="saveCld()" style="background:var(--g)">☁️ Lưu lên Sheets</button>
     </div>
   </div>
 </div>
@@ -1019,27 +1018,31 @@ function syncNow(silent){
     if(r.ok){
       var remote=r.data||{};
       var cnt=Object.keys(remote).length;
-      // Merge: remote ghi đè local (dữ liệu mới nhất từ Sheets luôn thắng)
+      // Google Sheets là nguồn sự thật duy nhất - remote LUÔN thắng local
       var changed=false;
       Object.keys(remote).forEach(function(k){
-        var remoteTs=remote[k].updated_at||'';
-        var localTs=(grades[k]&&grades[k].updated_at)||'';
-        // Remote thắng nếu mới hơn hoặc local chưa có
-        if(!grades[k]||remoteTs>=localTs){
-          grades[k]=remote[k];changed=true;
-        }
+        grades[k]=remote[k];changed=true;
       });
       // Lưu localStorage
       try{localStorage.setItem('_grades',JSON.stringify(grades));}catch(e){}
       if(changed){merge();updateAll();}
       sUI('ok');
       var ts=new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-      T('slbl').textContent='Đồng bộ lúc '+ts;
+      var syncCnt=Object.keys(remote).length;
+      T('slbl').textContent='Đồng bộ lúc '+ts+(syncCnt?' ('+syncCnt+' HS)':'');
       // Re-render học bạ nếu đang mở
       if(HBS&&T('hb-editor')&&T('hb-editor').style.display!=='none') renderHBContent();
-      if(!silent&&cnt>0) toast('✅ Đồng bộ: '+cnt+' bản ghi','ok');
+      if(!silent) toast('✅ Đã tải '+Object.keys(remote).length+' bản ghi từ Google Sheets','ok');
+      else if(changed) console.log('Auto-sync: updated',Object.keys(remote).length,'records');
     }else{sUI('err');if(!silent)toast('❌ '+r.error,'err');}
-  }).catch(function(e){sUI('err');if(!silent)toast('❌ Lỗi: '+e.message,'err');});
+  }).catch(function(e){
+    sUI('err');
+    if(!silent) toast('❌ Không thể tải từ Google Sheets: '+e.message,'err');
+    else {
+      // Auto-sync thất bại - hiện badge đỏ nhắc nhở
+      T('slbl').textContent='Chưa đồng bộ - Nhấn để thử lại';
+    }
+  });
 }
 
 // ═══ INIT ═══
@@ -1062,6 +1065,8 @@ function initApp(){
   // Load grades
   try{grades=JSON.parse(localStorage.getItem('_grades')||'{}');}catch(e){grades={};}
   merge();buildSide();
+  // Hiện thông báo đang tải từ Sheets
+  if(GAS) T('slbl').textContent='Đang tải dữ liệu từ Sheets...';
   bldLop('hs-lop','');
   var initK=1;
   if(CU&&CU.role==='teacher'&&userPerm&&Object.keys(userPerm).length>0){
@@ -1082,7 +1087,9 @@ function initApp(){
     sUI('','Chưa kết nối');
     if(CU&&CU.role==='admin') T('diem-ban').innerHTML='<div class="ib warn" style="margin-bottom:10px"><strong>⚠️ Chưa kết nối Google Sheets</strong><p>Vào tab <strong>⚙️ Cài đặt</strong> để nhập GAS URL.</p></div>';
   } else {
-    setTimeout(syncNow, 500);
+    // Sync ngay lập tức khi mở app - Sheets là nguồn sự thật
+    sUI('ld','Đang tải dữ liệu...');
+    syncNow(false);
   }
   // Auto-sync mỗi 90 giây để đồng bộ giữa các máy
   if(GAS){
@@ -1369,33 +1376,42 @@ T('uBg').addEventListener('click',function(e){if(e.target.id==='uBg') cm('uBg');
 document.addEventListener('click',function(e){if(e.target.id==='qrBg') cm('qrBg');});
 T('uBg').addEventListener('click',function(e){if(e.target.id==='uBg') cm('uBg');});
 function saveLoc(){
-  if(eIdx===null) return;
-  if(document.querySelectorAll('.diemw input.inv').length){toast('❌ Điểm không hợp lệ (0-10)','err');return;}
-  var s=SB[eIdx];grades[s.ma]=colG();cm('mBg');updateAll();
-  if(GAS){
-    gasPost({action:'saveGrade',ma:s.ma,grades:grades[s.ma],user:CU?CU.username:'?'})
-      .then(function(r){
-        if(r.ok){
-          toast('☁️ Đã lưu & đồng bộ: '+s.ten,'ok');
-          // Cập nhật timestamp để sync biết bản ghi mới nhất
-          if(grades[s.ma]) grades[s.ma].updated_at=new Date().toLocaleString('vi-VN');
-          try{localStorage.setItem('_grades',JSON.stringify(grades));}catch(e){}
-        } else {
-          toast('💾 Lưu tạm ('+r.error+') — sẽ sync sau','warn');
-        }
-      })
-      .catch(function(){toast('💾 Lưu tạm (mất mạng) — nhấn 🔄 để đồng bộ sau','warn');});
-  } else {toast('💾 Đã lưu tạm (chưa có GAS)','ok');}
+  // saveLoc giờ giống saveCld - luôn lưu lên Sheets
+  saveCld();
 }
 function saveCld(){
   if(eIdx===null) return;
   if(document.querySelectorAll('.diemw input.inv').length){toast('❌ Điểm không hợp lệ','err');return;}
-  var s=SB[eIdx],g=colG();grades[s.ma]=g;cm('mBg');updateAll();
-  if(!GAS){toast('💾 Lưu tạm (chưa có GAS URL)','warn');return;}
-  loader('Đang lưu...');
+  var s=SB[eIdx],g=colG();
+  // Thêm timestamp để track phiên bản mới nhất
+  g.updated_at=new Date().toLocaleString('vi-VN');
+  g.updated_by=CU?CU.username:'?';
+  grades[s.ma]=g;
+  cm('mBg');updateAll();
+  // Luôn lưu lên Sheets TRƯỚC
+  if(!GAS){
+    // Không có GAS - lưu tạm local và cảnh báo
+    try{localStorage.setItem('_grades',JSON.stringify(grades));}catch(e){}
+    toast('⚠️ Chưa có GAS URL - dữ liệu chỉ lưu TẠM trên máy này!','warn');
+    return;
+  }
+  loader('Đang lưu lên Google Sheets...');
   gasPost({action:'saveGrade',ma:s.ma,grades:g,user:CU?CU.username:'?'})
-    .then(function(r){loader();r.ok?toast('☁️ Đã lưu: '+s.ten,'ok'):toast('❌ '+r.error,'err');})
-    .catch(function(e){loader();toast('❌ '+e.message,'err');});
+    .then(function(r){
+      loader();
+      if(r.ok){
+        // Lưu thành công lên Sheets → cập nhật cache local
+        try{localStorage.setItem('_grades',JSON.stringify(grades));}catch(e){}
+        toast('☁️ Đã lưu lên Google Sheets: '+s.ten,'ok');
+      } else {
+        // Lưu thất bại - xóa khỏi local để tránh dữ liệu lỗi
+        toast('❌ Lỗi lưu Sheets: '+r.error+' - Thử lại!','err');
+      }
+    })
+    .catch(function(e){
+      loader();
+      toast('❌ Mất kết nối - Dữ liệu chưa được lưu lên Sheets!','err');
+    });
 }
 function saveAllLop(){
   var lop=T('d-lop').value;
