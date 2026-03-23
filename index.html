@@ -553,7 +553,7 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
         <button class="btn bg" onclick="testConnSett()">🔌 Kiểm tra kết nối</button>
         <button class="btn bo" onclick="syncNow()">🔄 Đồng bộ dữ liệu</button>
         <button class="btn bout" onclick="upStudents()">⬆ Upload HS lên Sheets</button>
-      <button class="btn bout" onclick="(function(){localStorage.removeItem('anthropic_key');toast('Đã xóa API Key AI','ok');})()" title="Xóa Anthropic API Key đã lưu">🔑 Xóa AI Key</button>
+      <button class="btn bout" onclick="(function(){localStorage.removeItem('gemini_key');toast('Đã xóa API Key AI','ok');})()" title="Xóa Anthropic API Key đã lưu">🔑 Xóa AI Key</button>
       </div>
     </div>
     <div id="conn-res"></div>
@@ -654,28 +654,28 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
 <!-- MODAL API KEY -->
 <div class="mbg" id="apiBg">
 <div class="mbox sm" style="max-width:500px">
-  <div class="mhd" style="background:linear-gradient(135deg,#4a148c,#7b1fa2)">
-    <div><h2>🤖 Cài đặt AI sinh nhận xét</h2><p>Nhập Anthropic API Key để dùng tính năng AI</p></div>
+  <div class="mhd" style="background:linear-gradient(135deg,#1a6ed8,#0d47a1)">
+    <div><h2>🤖 Cài đặt AI sinh nhận xét</h2><p>Nhập Google Gemini API Key để dùng tính năng AI</p></div>
     <button class="mcl" onclick="cm('apiBg')">✕</button>
   </div>
   <div class="mbd">
     <div class="ib blue" style="margin-bottom:14px">
-      <strong>📋 Cách lấy API Key miễn phí</strong>
+      <strong>📋 Cách lấy Google Gemini API Key (miễn phí hoàn toàn)</strong>
       <ol>
-        <li>Vào <strong>platform.claude.com</strong> → Đăng nhập</li>
-        <li>Click <strong>"Khóa API"</strong> ở menu trái</li>
-        <li>Nhấn <strong>"+ Tạo khóa"</strong> → Đặt tên → Copy key</li>
-        <li>Key dạng: <code>sk-ant-api03-...</code></li>
+        <li>Vào <strong>aistudio.google.com</strong> → Đăng nhập bằng Gmail</li>
+        <li>Click <strong>"Get API key"</strong> → <strong>"Create API key"</strong></li>
+        <li>Chọn dự án → Nhấn <strong>"Tạo khóa API"</strong> → Copy key</li>
+        <li>Key dạng: <code>AIzaSy...</code></li>
       </ol>
     </div>
     <div style="margin-bottom:12px">
       <label style="display:block;font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Anthropic API Key</label>
-      <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." style="width:100%;height:42px;border:1.5px solid var(--bd2);border-radius:var(--r8);padding:0 12px;font-family:monospace;font-size:13px;outline:none;transition:.2s;background:#fafbfd" oninput="this.style.borderColor=this.value?'var(--p)':'var(--bd2)'">
+      <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%;height:42px;border:1.5px solid var(--bd2);border-radius:var(--r8);padding:0 12px;font-family:monospace;font-size:13px;outline:none;transition:.2s;background:#fafbfd" oninput="this.style.borderColor=this.value?'var(--p)':'var(--bd2)'">
       <p style="font-size:11px;color:var(--tx3);margin-top:4px">Key được lưu trong máy này, không gửi đi đâu khác</p>
     </div>
     <div class="ib warn" style="margin-bottom:0">
       <strong>⚙️ Hoặc cấu hình qua Google Apps Script (tốt hơn)</strong>
-      <p>Cập nhật Code.gs mới → Deploy → Thêm <code>ANTHROPIC_API_KEY</code> vào Script Properties → AI hoạt động tự động cho tất cả máy, không cần nhập key từng máy.</p>
+      <p>Cập nhật Code.gs mới → Deploy → Thêm <code>GEMINI_API_KEY</code> vào Script Properties → AI hoạt động tự động cho tất cả máy, không cần nhập key từng máy.</p>
     </div>
   </div>
   <div class="mft">
@@ -2375,7 +2375,7 @@ async function hbGenAI(){
     }
     // ── BƯỚC 2: Dùng API key của user (lưu trong máy) ──
     if(!gasOk){
-      var userKey=localStorage.getItem('anthropic_key')||'';
+      var userKey=localStorage.getItem('gemini_key')||'';
       if(!userKey){
         // Hiện modal nhập key đẹp thay vì window.prompt
         if(btn){btn.disabled=false;btn.textContent='🤖 AI sinh nhận xét';}
@@ -2386,25 +2386,21 @@ async function hbGenAI(){
         return; // Dừng ở đây, saveApiKey() sẽ tự gọi lại hbGenAI
       }
       try{
-        var resp=await fetch('https://api.anthropic.com/v1/messages',{
+        // Gọi Google Gemini API
+        var geminiUrl='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+userKey;
+        var resp=await fetch(geminiUrl,{
           method:'POST',
-          headers:{
-            'Content-Type':'application/json',
-            'x-api-key':userKey,
-            'anthropic-version':'2023-06-01',
-            'anthropic-dangerous-request-allowed':'true'
-          },
+          headers:{'Content-Type':'application/json'},
           body:JSON.stringify({
-            model:'claude-opus-4-6',
-            max_tokens:2000,
-            messages:[{role:'user',content:aiPrompt}]
+            contents:[{parts:[{text:aiPrompt}]}],
+            generationConfig:{maxOutputTokens:2000,temperature:0.7}
           })
         });
         var data=await resp.json();
         if(data.error){
-          if(data.error.type==='authentication_error'){
-            localStorage.removeItem('anthropic_key');
-            // Hiện modal lại để nhập key mới
+          var errCode=data.error.status||'';
+          if(errCode==='UNAUTHENTICATED'||errCode==='PERMISSION_DENIED'||data.error.code===400){
+            localStorage.removeItem('gemini_key');
             if(btn){btn.disabled=false;btn.textContent='🤖 AI sinh nhận xét';}
             T('apiBg').classList.add('on');
             T('api-key-err').textContent='❌ API Key không hợp lệ, vui lòng nhập lại';
@@ -2412,9 +2408,9 @@ async function hbGenAI(){
             setTimeout(function(){T('api-key-input').focus();},300);
             return;
           }
-          throw new Error(data.error.message||'API error');
+          throw new Error(data.error.message||'Gemini API error');
         }
-        aiResult=data.content&&data.content[0]?data.content[0].text:'';
+        aiResult=data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts&&data.candidates[0].content.parts[0]?data.candidates[0].content.parts[0].text:'';
       }catch(fetchErr){
         if(fetchErr.message.indexOf('Failed to fetch')>=0||fetchErr.message.indexOf('NetworkError')>=0){
           // CORS → không thể gọi trực tiếp từ GitHub Pages
@@ -2715,7 +2711,7 @@ function saveApiKey(){
   var key=(T('api-key-input').value||'').trim();
   var errEl=T('api-key-err');
   if(!key){errEl.textContent='⚠️ Vui lòng nhập API Key';return;}
-  if(!key.startsWith('sk-')){errEl.textContent='❌ Key không đúng định dạng (phải bắt đầu bằng sk-)';return;}
+  if(!key.startsWith('AIza')){errEl.textContent='❌ Key không đúng định dạng (phải bắt đầu bằng AIza...)';return;}
   localStorage.setItem('anthropic_key',key);
   cm('apiBg');
   toast('✅ Đã lưu API Key — đang tạo nhận xét AI...','ok');
