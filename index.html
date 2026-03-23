@@ -2387,7 +2387,7 @@ async function hbGenAI(){
       }
       try{
         // Gọi Google Gemini API
-        var geminiUrl='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+userKey;
+        var geminiUrl='https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key='+userKey;
         var resp=await fetch(geminiUrl,{
           method:'POST',
           headers:{'Content-Type':'application/json'},
