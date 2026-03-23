@@ -353,7 +353,7 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
     <h1 id="tb-name">TH Diễn Liên — Quản lý Chất lượng GDTH</h1>
     <p id="tb-sub">Năm học 2025–2026 · TT27/2020/TT-BGDĐT</p>
   </div>
-  <div class="pill" id="sync-pill" onclick="syncNow()"><div class="sdot" id="sdot"></div><span id="slbl">Chưa kết nối</span></div>
+  <div class="pill" id="sync-pill" onclick="syncNow()" title="Nhấn để đồng bộ dữ liệu từ Google Sheets"><div class="sdot" id="sdot"></div><span id="slbl">Chưa kết nối</span><span style="opacity:.7;margin-left:3px;font-size:10px">🔄</span></div>
   <div class="pill" id="user-pill" onclick="doLogout()">👤 <span id="tb-user">...</span></div>
 </div></div>
 
@@ -418,6 +418,9 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
 <!-- NHẬP ĐIỂM -->
 <div class="page" id="pg-diem">
   <div id="diem-ban"></div>
+  <div id="sync-notice" style="display:none;background:var(--yl);border:1.5px solid #ffe082;border-radius:var(--r8);padding:8px 13px;margin-bottom:10px;font-size:12.5px;color:#7d5a00">
+    <strong>💡 Đang làm việc trên nhiều máy?</strong> Nhấn nút <strong>🔄 Đồng bộ ngay</strong> để lấy dữ liệu mới nhất từ máy khác về.
+  </div>
   <div class="kts" id="diem-kts">
     <div class="kt k1 on" onclick="dK(1,this)">🔵 Khối 1</div>
     <div class="kt k2" onclick="dK(2,this)">🟢 Khối 2</div>
@@ -429,6 +432,7 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
     <select id="d-lop" onchange="dFil()"><option value="">Tất cả lớp</option></select>
     <div class="srch"><span class="si2">🔍</span><input type="text" id="d-q" placeholder="Tìm học sinh..." oninput="debounce(dFil,220)"></div>
     <select id="d-nt" onchange="dFil()"><option value="">Tất cả</option><option value="done">Đã nhập</option><option value="todo">Chưa nhập</option></select>
+    <button class="btn" style="background:#e65100;color:#fff" onclick="syncNow()" title="Kéo dữ liệu mới nhất từ Google Sheets về">🔄 Đồng bộ ngay</button>
     <button class="btn bp" onclick="saveAllLop()">☁️ Lưu lớp lên Sheets</button>
     <button class="btn bpu" onclick="expLopXL()">📊 Xuất bảng CL lớp</button>
     <span class="rc" id="d-rc"></span>
@@ -1005,26 +1009,34 @@ function doLogout(){
 }
 
 // ═══ SYNC ═══
-function syncNow(){
-  if(!GAS){toast('⚠️ Chưa có GAS URL — vào Cài đặt','warn');return;}
+function syncNow(silent){
+  if(!GAS){if(!silent)toast('⚠️ Chưa có GAS URL — vào Cài đặt','warn');return;}
   sUI('ld');
   gasCall({action:'getGrades'}).then(function(r){
     if(r.ok){
       var remote=r.data||{};
       var cnt=Object.keys(remote).length;
-      Object.keys(remote).forEach(function(k){grades[k]=remote[k];});
-      // Lưu vào localStorage để offline dùng được
+      // Merge: remote ghi đè local (dữ liệu mới nhất từ Sheets luôn thắng)
+      var changed=false;
+      Object.keys(remote).forEach(function(k){
+        var remoteTs=remote[k].updated_at||'';
+        var localTs=(grades[k]&&grades[k].updated_at)||'';
+        // Remote thắng nếu mới hơn hoặc local chưa có
+        if(!grades[k]||remoteTs>=localTs){
+          grades[k]=remote[k];changed=true;
+        }
+      });
+      // Lưu localStorage
       try{localStorage.setItem('_grades',JSON.stringify(grades));}catch(e){}
-      merge();updateAll();sUI('ok');
-      var ts=new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+      if(changed){merge();updateAll();}
+      sUI('ok');
+      var ts=new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
       T('slbl').textContent='Đồng bộ lúc '+ts;
-      // Nếu đang mở học bạ của 1 HS → re-render để hiện điểm mới
-      if(HBS && T('hb-editor') && T('hb-editor').style.display!=='none'){
-        renderHBContent();
-      }
-      if(cnt>0) toast('✅ Đồng bộ: '+cnt+' bản ghi','ok');
-    }else{sUI('err');toast('❌ '+r.error,'err');}
-  }).catch(function(e){sUI('err');toast('❌ Lỗi đồng bộ: '+e.message,'err');});
+      // Re-render học bạ nếu đang mở
+      if(HBS&&T('hb-editor')&&T('hb-editor').style.display!=='none') renderHBContent();
+      if(!silent&&cnt>0) toast('✅ Đồng bộ: '+cnt+' bản ghi','ok');
+    }else{sUI('err');if(!silent)toast('❌ '+r.error,'err');}
+  }).catch(function(e){sUI('err');if(!silent)toast('❌ Lỗi: '+e.message,'err');});
 }
 
 // ═══ INIT ═══
@@ -1068,6 +1080,12 @@ function initApp(){
     if(CU&&CU.role==='admin') T('diem-ban').innerHTML='<div class="ib warn" style="margin-bottom:10px"><strong>⚠️ Chưa kết nối Google Sheets</strong><p>Vào tab <strong>⚙️ Cài đặt</strong> để nhập GAS URL.</p></div>';
   } else {
     setTimeout(syncNow, 500);
+  }
+  // Auto-sync mỗi 90 giây để đồng bộ giữa các máy
+  if(GAS){
+    setInterval(function(){
+      syncNow(true); // true = silent (không hiện toast)
+    }, 90000);
   }
   // Ẩn tab giáo viên không có quyền
   if(CU&&CU.role==='teacher'&&userPerm){
@@ -1115,6 +1133,8 @@ function gp(id,el){
   if(id==='pg-status') renderSt();
   if(id==='pg-tk') renderTK(tkKF);
   if(id==='pg-users') loadUsers();
+  // Sync ngầm khi chuyển sang tab Nhập điểm hoặc Học sinh
+  if((id==='pg-diem'||id==='pg-hs')&&GAS) syncNow(true);
   if(id==='pg-hocba'){
     document.querySelector('.al').classList.add('pg-hocba-active');
     bldLop('hb-lop','');hbFil();
@@ -1351,9 +1371,18 @@ function saveLoc(){
   var s=SB[eIdx];grades[s.ma]=colG();cm('mBg');updateAll();
   if(GAS){
     gasPost({action:'saveGrade',ma:s.ma,grades:grades[s.ma],user:CU?CU.username:'?'})
-      .then(function(r){r.ok?toast('☁️ Đã lưu: '+s.ten,'ok'):toast('💾 Lưu tạm ('+r.error+')','warn');})
-      .catch(function(){toast('💾 Lưu tạm (offline)','warn');});
-  } else {toast('💾 Đã lưu tạm','ok');}
+      .then(function(r){
+        if(r.ok){
+          toast('☁️ Đã lưu & đồng bộ: '+s.ten,'ok');
+          // Cập nhật timestamp để sync biết bản ghi mới nhất
+          if(grades[s.ma]) grades[s.ma].updated_at=new Date().toLocaleString('vi-VN');
+          try{localStorage.setItem('_grades',JSON.stringify(grades));}catch(e){}
+        } else {
+          toast('💾 Lưu tạm ('+r.error+') — sẽ sync sau','warn');
+        }
+      })
+      .catch(function(){toast('💾 Lưu tạm (mất mạng) — nhấn 🔄 để đồng bộ sau','warn');});
+  } else {toast('💾 Đã lưu tạm (chưa có GAS)','ok');}
 }
 function saveCld(){
   if(eIdx===null) return;
