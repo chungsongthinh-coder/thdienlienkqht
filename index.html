@@ -1150,6 +1150,8 @@ function syncNow(silent){
 // INIT
 function initApp(){
   GAS=localStorage.getItem('gas_url')||DEFAULT_GAS||'';
+  var savedVer=localStorage.getItem('_appVer')||'';
+  if(savedVer!=='3.0'){localStorage.removeItem('_allGrades');localStorage.removeItem('_grades');localStorage.setItem('_appVer','3.0');}
   try{allGrades=JSON.parse(localStorage.getItem('_allGrades')||'{}');}catch(e){allGrades={};}
   // Migrate old V2.0 flat grades to 'cn' period (one-time)
   try{
@@ -1262,8 +1264,8 @@ function _visibleSubj(k){return(SUBJ[String(k)]||SUBJ['1']).filter(function(mn){
 // Kiểm tra môn có điểm KTĐK theo kỳ + khối (TT27)
 function _hasDiem(mn,k){
   if(!mn[2]||!mn[3])return false; // Môn không có cấu trúc điểm
-  if(curPeriod==='cn') return true; // Cuối năm: giữ nguyên theo SUBJ
-  // Giữa HK (gk1, ck1, gk2):
+  if(curPeriod==='cn'||curPeriod==='ck1') return true; // Cuối năm + Cuối HK1: có KTĐK
+  // Giữa HK (gk1, gk2): TT27 Đ7
   if(k<=3) return false; // K1-3: KHÔNG có điểm KTĐK
   // K4-5: CHỈ Toán + Tiếng Việt có điểm
   return mn[1]==='mon_Toán'||mn[1]==='mon_Tiếng_việt';
@@ -2290,7 +2292,8 @@ function openM(idx){
   T('mTitle').textContent='✏️ '+s.ten;T('mSub').textContent='Lớp '+s.lop+' · '+s.ns;
   T('mStat').textContent=isDone(s)?'✅ Đã có':'⏳ Chưa nhập';
   var kq=cTT(s.ma,s.khoi),es=editSubs(s.lop);
-  var h='<div class="tt27"><h4>🤖 Kết quả tự động</h4><div class="tt27g">';
+  var isMM=curPeriod!=='cn';
+  var h=isMM?'':'<div class="tt27"><h4>🤖 Kết quả tự động</h4><div class="tt27g">';
   h+='<div class="tt27i"><div class="tl">KQGD</div><div class="tv" id="t-kq">'+kqL(kq)+'</div></div>';
   h+='<div class="tt27i"><div class="tl">Lên lớp</div><div class="tv" id="t-ll">'+(g.len_lop?blH(g.len_lop,g.len_lop==='Có'?'bl-ht':'bl-cht'):'—')+'</div></div>';
   h+='<div class="tt27i"><div class="tl">Khen thưởng</div><div class="tv" id="t-kh">'+khenL(g,kq)+'</div></div>';
@@ -2305,7 +2308,7 @@ function openM(idx){
     h+='<label class="o-ht"><input type="radio" name="m_'+mk+'" value="HT"'+(mv==='HT'?' checked':'')+(ce?'':' disabled')+'><span>HT</span></label>';
     h+='<label class="o-cht"><input type="radio" name="m_'+mk+'" value="CHT"'+(mv==='CHT'?' checked':'')+(ce?'':' disabled')+'><span>CHT</span></label>';
     h+='</div>';
-    if(hD&&dk)h+='<div class="diemw"><label>Điểm:</label><input type="number" id="fd_'+dk+'" min="0" max="10" value="'+dv+'" placeholder="0-10" oninput="vD(this);onGC('+idx+')"'+(ce?'':' disabled')+'></div>';
+    if(_hasDiem(mn,parseInt(k))&&dk)h+='<div class="diemw"><label>Điểm:</label><input type="number" id="fd_'+dk+'" min="0" max="10" value="'+dv+'" placeholder="0-10" oninput="vD(this);onGC('+idx+')"'+(ce?'':' disabled')+'></div>';
     h+='</div></div>';
   });
   h+='</div></div>';
@@ -2358,6 +2361,17 @@ T('mBg').addEventListener('click',function(e){if(e.target.id==='mBg')cm('mBg');}
 T('uBg').addEventListener('click',function(e){if(e.target.id==='uBg')cm('uBg');});
 T('hbBg').addEventListener('click',function(e){if(e.target.id==='hbBg')cm('hbBg');});
 T('csdlBg').addEventListener('click',function(e){if(e.target.id==='csdlBg')cm('csdlBg');});
+// Radio toggle-off: click checked radio again to uncheck
+document.addEventListener('click',function(e){
+  var label=e.target.closest('.rg label');if(!label)return;
+  var radio=label.querySelector('input[type=radio]');if(!radio)return;
+  if(radio._wasChecked){e.preventDefault();radio.checked=false;radio._wasChecked=false;
+    radio.dispatchEvent(new Event('change',{bubbles:true}));}
+});
+document.addEventListener('mousedown',function(e){
+  var label=e.target.closest('.rg label');if(!label)return;
+  var radio=label.querySelector('input[type=radio]');if(radio)radio._wasChecked=radio.checked;
+});
 
 // SAVE
 function saveCld(){
