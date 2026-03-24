@@ -977,6 +977,15 @@ function hsPg(p){hsP=Math.max(1,Math.min(p,Math.ceil(hsF.length/PZ)));renderHS()
 // PAGE: NHẬP ĐIỂM — DYNAMIC TABLE
 var HIDDEN_SUBJ=['mon_Tiếng_dân_tộc']; // Ẩn các môn trường không dạy
 function _visibleSubj(k){return(SUBJ[String(k)]||SUBJ['1']).filter(function(mn){return HIDDEN_SUBJ.indexOf(mn[1])<0;});}
+// Kiểm tra môn có điểm KTĐK theo kỳ + khối (TT27)
+function _hasDiem(mn,k){
+  if(!mn[2]||!mn[3])return false; // Môn không có cấu trúc điểm
+  if(curPeriod==='cn') return true; // Cuối năm: giữ nguyên theo SUBJ
+  // Giữa HK (gk1, ck1, gk2):
+  if(k<=3) return false; // K1-3: KHÔNG có điểm KTĐK
+  // K4-5: CHỈ Toán + Tiếng Việt có điểm
+  return mn[1]==='mon_Toán'||mn[1]==='mon_Tiếng_việt';
+}
 function _shortName(n){return{
   'Toán':'Toán','Tiếng Việt':'T.Việt','Đạo đức':'Đ.đức',
   'Tự nhiên & XH':'TNXH','Ngoại ngữ':'NN','Tin học':'TH',
@@ -993,34 +1002,33 @@ function dFil(){
 }
 function renderD(){
   var sj=_visibleSubj(curK);
+  var isMid=curPeriod!=='cn'; // Giữa HK = không có Lên lớp/KQGD
   // Build header
-  var th='<tr><th style="position:sticky;left:0;z-index:2;background:#0d3d82;min-width:38px">Lớp</th>';
-  th+='<th style="position:sticky;left:38px;z-index:2;background:#0d3d82;min-width:120px">Họ tên</th>';
-  // Môn học headers
+  var th='<tr><th style="position:sticky;left:0;z-index:2;background:#1e40af;min-width:38px">Lớp</th>';
+  th+='<th style="position:sticky;left:38px;z-index:2;background:#1e40af;min-width:120px">Họ tên</th>';
   sj.forEach(function(mn){
-    var sn=_shortName(mn[0]),hasDiem=mn[2]&&mn[3];
+    var sn=_shortName(mn[0]),hasDiem=_hasDiem(mn,curK);
     if(hasDiem) th+='<th class="c" style="min-width:55px;font-size:9px;line-height:1.2">'+sn+'<br><span style="font-weight:400;font-size:8px">ĐG/Điểm</span></th>';
     else th+='<th class="c" style="min-width:36px;font-size:9px">'+sn+'</th>';
   });
-  // NL chung
   NL.slice(0,NL_CHUNG_IDX).forEach(function(nl){
     th+='<th class="c" style="min-width:32px;font-size:8px;line-height:1.2;background:#1565c0">'+nl[0].split(' ')[0].substring(0,4)+'</th>';
   });
-  // NL đặc thù
   NL.slice(NL_CHUNG_IDX).forEach(function(nl){
     th+='<th class="c" style="min-width:32px;font-size:8px;line-height:1.2;background:#e65100">'+nl[0].substring(0,4)+'</th>';
   });
-  // PC
   PC.forEach(function(pc){
     th+='<th class="c" style="min-width:32px;font-size:8px;line-height:1.2;background:#1b5e20">'+pc[0].substring(0,4)+'</th>';
   });
-  th+='<th class="c" style="min-width:50px;font-size:9px">KQGD</th>';
-  th+='<th class="c" style="min-width:34px;font-size:9px">Lên<br>lớp</th>';
+  if(!isMid){
+    th+='<th class="c" style="min-width:50px;font-size:9px">KQGD</th>';
+    th+='<th class="c" style="min-width:34px;font-size:9px">Lên<br>lớp</th>';
+  }
   th+='<th class="c" style="min-width:30px"></th></tr>';
   T('d-thead').innerHTML=th;
 
   var tot=dF.length,rows=dF.slice((dP-1)*PZ,dP*PZ),tb=T('d-tb');
-  var colSpan=2+sj.length+NL.length+PC.length+3;
+  var colSpan=2+sj.length+NL.length+PC.length+(isMid?1:3);
   if(!tot){tb.innerHTML='<tr><td colspan="'+colSpan+'"><div class="empty"><div class="ei">📋</div><p>Không có HS</p></div></td></tr>';T('d-rc').textContent='';return;}
   tb.innerHTML=rows.map(function(s){
     var gi=SB.findIndex(function(b){return b.ma===s.ma;}),g=grades[s.ma]||{},kq=cTT(s.ma,s.khoi);
@@ -1028,11 +1036,10 @@ function renderD(){
     var r='<tr>';
     r+='<td style="position:sticky;left:0;z-index:1;background:#fff"><span class="bl bl-lop" style="font-size:9px">'+s.lop+'</span></td>';
     r+='<td style="position:sticky;left:38px;z-index:1;background:#fff" class="tdn"><span style="font-size:11.5px">'+s.ten+'</span></td>';
-    // Môn
     sj.forEach(function(mn){
-      var mv=g[mn[1]]||'',dv=mn[2]&&mn[3]?(g[mn[2]]!==undefined&&g[mn[2]]!==''?g[mn[2]]:''):'';
-      if(mn[2]&&mn[3]){
-        // Có điểm
+      var mv=g[mn[1]]||'',hasDiem=_hasDiem(mn,s.khoi);
+      var dv=hasDiem?(g[mn[2]]!==undefined&&g[mn[2]]!==''?g[mn[2]]:''):'';
+      if(hasDiem){
         var mBl=mv?'<span style="font-size:9px;font-weight:600;'+({HTT:'color:#00695c',HT:'color:var(--p)',CHT:'color:var(--r)'}[mv]||'color:#999')+'">'+({HTT:'T',HT:'H',CHT:'C'}[mv]||mv)+'</span>':'<span style="color:#ddd;font-size:9px">—</span>';
         var dBl=dv!==''?'<b style="font-size:11px">'+dv+'</b>':'';
         r+='<td class="c" style="padding:3px 2px;line-height:1.1;white-space:nowrap">'+mBl+(dv!==''?'<br>':'')+ dBl+'</td>';
@@ -1050,11 +1057,12 @@ function renderD(){
       var v=g[pc[1]]||'';
       r+='<td class="c" style="padding:2px 1px;font-size:9px;'+(v==='T'?'color:#1b5e20;font-weight:700':v==='Đ'?'color:var(--p)':v==='CCG'?'color:var(--r)':'color:#ddd')+'">'+(v||'—')+'</td>';
     });
-    // KQGD
-    r+='<td class="c" style="padding:2px">'+kqL(kq)+'</td>';
-    // Lên lớp
-    var ll=g.len_lop;
-    r+='<td class="c" style="padding:2px">'+(ll==='Có'?'<span style="color:var(--g);font-weight:700;font-size:10px">✓</span>':ll==='Không'?'<span style="color:var(--r);font-size:10px">✗</span>':'<span style="color:#ddd;font-size:9px">—</span>')+'</td>';
+    if(!isMid){
+      // KQGD + Lên lớp chỉ hiện ở Cuối năm
+      r+='<td class="c" style="padding:2px">'+kqL(kq)+'</td>';
+      var ll=g.len_lop;
+      r+='<td class="c" style="padding:2px">'+(ll==='Có'?'<span style="color:var(--g);font-weight:700;font-size:10px">✓</span>':ll==='Không'?'<span style="color:var(--r);font-size:10px">✗</span>':'<span style="color:#ddd;font-size:9px">—</span>')+'</td>';
+    }
     r+='<td class="c" style="padding:2px">'+abtn+'</td>';
     r+='</tr>';
     return r;
@@ -1075,7 +1083,7 @@ function _mauCols(k){
   ];
   sj.forEach(function(mn){
     cols.push({h:mn[0]+' (ĐG)',key:mn[1],w:10,note:'T / H / C',type:'mon'});
-    if(mn[2]&&mn[3]) cols.push({h:mn[0]+' (Điểm)',key:mn[2],w:10,note:'0-10',type:'diem'});
+    if(_hasDiem(mn,k)) cols.push({h:mn[0]+' (Điểm)',key:mn[2],w:10,note:'0-10',type:'diem'});
   });
   NL.slice(0,NL_CHUNG_IDX).forEach(function(nl){cols.push({h:'NL: '+nl[0],key:nl[1],w:12,note:'T / Đ / C',type:'nlpc'});});
   NL.slice(NL_CHUNG_IDX).forEach(function(nl){cols.push({h:'NL: '+nl[0],key:nl[1],w:12,note:'T / Đ / C',type:'nlpc'});});
@@ -1127,7 +1135,7 @@ function dlMauExcel(){
   // ═══ MÔN HỌC ═══
   var monStart=ci;
   sj.forEach(function(mn){
-    var hd=mn[2]&&mn[3]; // có điểm?
+    var hd=_hasDiem(mn,k); // có điểm theo kỳ?
     if(hd){
       r1.push('');r1.push('');
       r2.push(mn[0]);r2.push('');
@@ -1184,12 +1192,14 @@ function dlMauExcel(){
   r1[pcStart]='Phẩm chất chủ yếu';
   merges.push({s:{r:0,c:pcStart},e:{r:0,c:pcEnd}});
 
-  // ═══ TAIL COLS ═══
-  [{h:'Hoàn thành\nchương trình\nlớp học'},{h:'Lên lớp'},{h:'Xếp loại'}].forEach(function(c){
-    r1.push(c.h);r2.push('');r3.push('');
-    merges.push({s:{r:0,c:ci},e:{r:2,c:ci}});
-    ci++;
-  });
+  // ═══ TAIL COLS (chỉ Cuối năm) ═══
+  if(curPeriod==='cn'){
+    [{h:'Hoàn thành\nchương trình\nlớp học'},{h:'Lên lớp'},{h:'Xếp loại'}].forEach(function(c){
+      r1.push(c.h);r2.push('');r3.push('');
+      merges.push({s:{r:0,c:ci},e:{r:2,c:ci}});
+      ci++;
+    });
+  }
 
   // ═══ DATA ROWS ═══
   var dataRows=hsLop.map(function(s,i){
@@ -1198,7 +1208,7 @@ function dlMauExcel(){
     sj.forEach(function(mn){
       var mv=g[mn[1]]||'';
       row.push(mv?_storeToDisplay(mv,'mon'):'');
-      if(mn[2]&&mn[3]) row.push(g[mn[2]]||'');
+      if(_hasDiem(mn,s.khoi)) row.push(g[mn[2]]||'');
     });
     // NL chung
     NL.slice(0,NL_CHUNG_IDX).forEach(function(nl){
@@ -1212,10 +1222,12 @@ function dlMauExcel(){
     PC.forEach(function(pc){
       var v=g[pc[1]]||'';row.push(v?_storeToDisplay(v,'nlpc'):'');
     });
-    var kq=cTT(s.ma,s.khoi);
-    row.push(kq?kqText(kq):'');
-    row.push(g.len_lop==='Có'?'x':'');
-    row.push(kq||'');
+    if(curPeriod==='cn'){
+      var kq=cTT(s.ma,s.khoi);
+      row.push(kq?kqText(kq):'');
+      row.push(g.len_lop==='Có'?'x':'');
+      row.push(kq||'');
+    }
     return row;
   });
 
@@ -1490,10 +1502,17 @@ function _subjKeyToName(key){
 }
 
 function _subjHasDiem(key,khoi){
-  // Kiểm tra môn này có cột điểm không (dựa trên SUBJ data)
   var sj=SUBJ[String(khoi)]||SUBJ['1'];
   for(var i=0;i<sj.length;i++){
-    if(sj[i][1]===key)return sj[i][2]&&sj[i][3];
+    if(sj[i][1]===key){
+      if(!sj[i][2]||!sj[i][3])return false;
+      // Period check
+      if(curPeriod!=='cn'){
+        if(khoi<=3)return false;
+        return key==='mon_Toán'||key==='mon_Tiếng_việt';
+      }
+      return true;
+    }
   }
   return false;
 }
