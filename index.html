@@ -1279,6 +1279,8 @@ function expBangCLWord(){
   html+='<tr style="font-weight:bold;background:#eef"><td>TỔNG</td><td>'+totR.tot+'</td><td>'+totR.nhap+'</td><td>'+totR.htxs+'</td><td>'+totR.htt+'</td><td>'+totR.ht+'</td><td>'+totR.cht+'</td><td>'+tp+'%</td><td>'+totR.xs+'</td><td>'+totR.tb+'</td><td>'+totR.ll+'</td></tr></table>';
   html+='<br><table style="border:none"><tr><td style="border:none;text-align:center;width:50%"><br>Người lập</td><td style="border:none;text-align:center">Ngày ... tháng ... năm 2026<br>Hiệu trưởng</td></tr></table>';
   _dl(_wordBlob(html),'BangChatLuong_'+new Date().toISOString().slice(0,10)+'.doc');
+  toast('📄 Xuất bảng chất lượng','ok');
+}
 
 // AUTO-LOGIN
 window.addEventListener('load',function(){
