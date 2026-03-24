@@ -368,7 +368,7 @@ body:not(.is-gvbm) .gv-only{display:none!important}
   <div class="lf"><label>Mật khẩu</label><input type="password" id="lp" placeholder="Nhập mật khẩu" autocomplete="current-password"></div>
   <button class="lbtn" id="lbtn" onclick="doLogin()">Đăng nhập</button>
   <div class="lmode" id="lmode"></div>
-  <div class="lnote">Mặc định: <strong>admin / admin123</strong></div>
+  <div class="lnote">Mời ghé thăm: Tên đăng nhập <strong>khach</strong> / Mật khẩu <strong>khach123</strong></div>
 </div>
 </div>
 
@@ -866,7 +866,7 @@ function syncNow(silent){
   sUI('ld');
   // V2: load grades + nhận xét cùng lúc
   Promise.all([
-    gasCall({action:'getGrades'}),
+    gasCall({action:'getGrades',period:curPeriod}),
     gasCall({action:'getNhanXet'}).catch(function(){return{ok:true,data:{}};})
   ]).then(function(results){
     var rG=results[0], rN=results[1];
@@ -2099,7 +2099,7 @@ function saveCld(){
   if(!GAS){toast('⚠️ Chỉ lưu tạm trên máy','warn');return;}
   loader('Đang lưu lên Sheets...');
   function doSave(retry){
-    gasPost({action:'saveGrade',ma:s.ma,grades:g,user:CU?CU.username:'?'}).then(function(r){
+    gasPost({action:'saveGrade',ma:s.ma,grades:g,user:CU?CU.username:'?',period:curPeriod}).then(function(r){
       loader();if(r.ok)toast('☁️ Đã lưu: '+s.ten,'ok');else toast('❌ '+r.error,'err');
     }).catch(function(e){
       if(retry<2){setTimeout(function(){doSave(retry+1);},1500);}
@@ -2124,7 +2124,7 @@ function saveAllLop(){
   function next(){
     if(i>=batch.length){loader();toast(fail?'⚠️ '+ok+'/'+(ok+fail)+' HS':'☁️ Lưu '+ok+' HS!',fail?'warn':'ok');return;}
     T('ldr-t').textContent='Lưu '+Math.min(i+CHUNK,batch.length)+'/'+batch.length+'...';
-    gasPost({action:'saveGrades',grades_batch:batch.slice(i,i+CHUNK),user:CU?CU.username:'?'}).then(function(r){if(r.ok)ok+=Math.min(CHUNK,batch.length-i);else fail+=Math.min(CHUNK,batch.length-i);i+=CHUNK;next();}).catch(function(){fail+=Math.min(CHUNK,batch.length-i);i+=CHUNK;next();});
+    gasPost({action:'saveGrades',grades_batch:batch.slice(i,i+CHUNK),user:CU?CU.username:'?',period:curPeriod}).then(function(r){if(r.ok)ok+=Math.min(CHUNK,batch.length-i);else fail+=Math.min(CHUNK,batch.length-i);i+=CHUNK;next();}).catch(function(){fail+=Math.min(CHUNK,batch.length-i);i+=CHUNK;next();});
   }next();
 }
 
