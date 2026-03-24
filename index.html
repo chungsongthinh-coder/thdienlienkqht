@@ -332,9 +332,13 @@ code{font-family:monospace;font-size:12px;background:var(--slate7);padding:2px 6
 #d-table-wrap tbody tr:hover td{background:var(--blue-xl)!important}
 
 /* Sidebar classes for items */
-/* Sidebar role visibility — controlled by body class */
-body:not(.is-admin) .ao{display:none!important}
+/* Sidebar role visibility */
 body:not(.is-gvbm) .gv-only{display:none!important}
+/* Admin-only items: visible to all, but locked for non-admin */
+body:not(.is-admin) .ao{opacity:.7}
+body:not(.is-admin) .ao::after{content:'🔒';position:absolute;right:8px;font-size:10px}
+body:not(.is-admin) .sb-item.ao{position:relative}
+body:not(.is-admin) .ao .cc-lbl::after{content:' (Chỉ Admin)';color:var(--rose);font-weight:600}
 
 @media(max-width:960px){
   .sidebar{width:56px;overflow:hidden}
@@ -414,11 +418,11 @@ body:not(.is-gvbm) .gv-only{display:none!important}
       <div class="sb-section-title">Trích xuất dữ liệu</div>
       <div class="sb-item" onclick="gp('pg-export',this)"><span class="ico">📤</span><span>Xuất báo cáo</span></div>
     </div>
-    <div class="sb-section ao">
+    <div class="sb-section">
       <div class="sb-section-title">Quản trị hệ thống</div>
-      <div class="sb-item ao" onclick="gp('pg-users',this)"><span class="ico">👥</span><span>Phân quyền CBGV</span></div>
-      <div class="sb-item ao" onclick="gp('pg-import',this)"><span class="ico">📥</span><span>Nhập danh sách HS</span></div>
-      <div class="sb-item ao" onclick="gp('pg-settings',this)"><span class="ico">⚙️</span><span>Cài đặt hệ thống</span></div>
+      <div class="sb-item ao" onclick="if(needAdmin('Phân quyền CBGV'))gp('pg-users',this)"><span class="ico">👥</span><span>Phân quyền CBGV</span></div>
+      <div class="sb-item ao" onclick="if(needAdmin('Nhập danh sách HS'))gp('pg-import',this)"><span class="ico">📥</span><span>Nhập danh sách HS</span></div>
+      <div class="sb-item ao" onclick="if(needAdmin('Cài đặt hệ thống'))gp('pg-settings',this)"><span class="ico">⚙️</span><span>Cài đặt hệ thống</span></div>
     </div>
   </div>
 
@@ -617,14 +621,14 @@ body:not(.is-gvbm) .gv-only{display:none!important}
   </div>
 
   <!-- Section 3: CSDL ngành (Admin only) -->
-  <div class="ao" style="margin-bottom:20px">
+  <div style="margin-bottom:20px">
     <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;display:flex;align-items:center;gap:8px">
       <span style="width:24px;height:24px;border-radius:6px;background:var(--rose);color:white;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800">3</span>
       Đồng bộ CSDL ngành
       <span style="font-size:10px;color:var(--rose);background:var(--rose-l);padding:2px 8px;border-radius:10px;font-weight:600">Admin</span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
-      <div class="ccard" style="cursor:pointer;border-left:4px solid var(--rose);padding:18px 20px" onclick="showCSDLPicker()">
+      <div class="ccard" style="cursor:pointer;border-left:4px solid var(--rose);padding:18px 20px" onclick="if(needAdmin())showCSDLPicker()">
         <div class="cc-ico" style="background:var(--rose-l);font-size:22px">🏛️</div>
         <div>
           <div style="font-weight:700;font-size:14px;color:var(--navy)">Xuất mẫu CSDL ngành</div>
@@ -659,7 +663,7 @@ body:not(.is-gvbm) .gv-only{display:none!important}
 </div>
 
 <!-- TÀI KHOẢN -->
-<div class="page ao" id="pg-users">
+<div class="page" id="pg-users">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
     <h2 style="font-size:16px;color:var(--navy);font-family:'Playfair Display',serif">Phân quyền Cán bộ Giáo viên</h2>
     <div style="display:flex;gap:8px"><button class="btn bg" onclick="loadUsers()">🔄 Tải lại</button><button class="btn bp" onclick="openUM(null)">➕ Thêm</button></div>
@@ -672,7 +676,7 @@ body:not(.is-gvbm) .gv-only{display:none!important}
 </div>
 
 <!-- NHẬP HS -->
-<div class="page ao" id="pg-import">
+<div class="page" id="pg-import">
   <div style="max-width:620px">
     <div class="wiz-step">
       <h3><span class="sn">1</span>Thông tin trường</h3>
@@ -694,7 +698,7 @@ body:not(.is-gvbm) .gv-only{display:none!important}
 </div>
 
 <!-- CÀI ĐẶT -->
-<div class="page ao" id="pg-settings">
+<div class="page" id="pg-settings">
   <div class="tw" style="padding:24px">
     <h2 style="font-size:16px;margin-bottom:14px;color:var(--navy);font-family:'Playfair Display',serif">Cài đặt hệ thống</h2>
     <div style="background:var(--slate7);border:1.5px solid var(--slate6);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
@@ -921,6 +925,13 @@ function parsePC(str){
 }
 function canE(lop){if(!CU)return false;if(CU.role==='admin'||userPerm===null)return true;return!!userPerm[lop];}
 function editSubs(lop){if(!CU)return[];if(CU.role==='admin'||userPerm===null)return null;return userPerm[lop]||[];}
+
+// ADMIN GUARD
+function needAdmin(msg){
+  if(CU&&CU.role==='admin')return true;
+  toast('🔒 '+(msg||'Chức năng dành cho Quản trị viên'),'warn');
+  return false;
+}
 
 // PERIOD SWITCHER
 function switchPeriod(pid){
