@@ -392,6 +392,12 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
     <button class="btn bp" onclick="saveAllLop()">☁️ Lưu lớp lên Sheets</button>
     <span class="rc" id="d-rc"></span>
   </div>
+  <div class="tb" style="margin-bottom:6px">
+    <button class="btn bout" onclick="dlMauExcel()">📥 Tải mẫu Excel</button>
+    <button class="btn bg" onclick="T('d-file-inp').click()">📤 Nhập từ Excel</button>
+    <input type="file" id="d-file-inp" accept=".xlsx,.xls,.csv" style="display:none" onchange="onDiemFile(this)">
+    <span id="d-import-info" style="font-size:11px;color:var(--tx3)"></span>
+  </div>
   <div class="tw"><div class="ts" id="d-table-wrap">
     <table><thead id="d-thead"><tr><th>Lớp</th><th>Họ tên</th><th class="c">Đang tải...</th></tr></thead>
     <tbody id="d-tb"></tbody></table>
@@ -894,6 +900,250 @@ function renderD(){
   }).join('');T('d-rc').textContent=tot+' HS';mkPagi('d-pb','d-pi',dP,dF,'dPg');
 }
 function dPg(p){dP=Math.max(1,Math.min(p,Math.ceil(dF.length/PZ)));renderD();}
+
+// ┌──────────────────────────────────────────────────────────┐
+// │  NHẬP ĐIỂM TỪ EXCEL — MẪU + IMPORT                     │
+// └──────────────────────────────────────────────────────────┘
+
+function _mauCols(k){
+  // Tạo danh sách cột cho mẫu Excel theo khối
+  var sj=_visibleSubj(k);
+  var cols=[
+    {h:'STT',key:'_stt',w:5},
+    {h:'Mã HS',key:'_ma',w:14},
+    {h:'Họ và tên',key:'_ten',w:25}
+  ];
+  sj.forEach(function(mn){
+    cols.push({h:mn[0]+' (ĐG)',key:mn[1],w:10,note:'HTT / HT / CHT'});
+    if(mn[2]&&mn[3]) cols.push({h:mn[0]+' (Điểm)',key:mn[2],w:10,note:'0-10'});
+  });
+  // NL chung
+  var nlC=NL.slice(0,NL_CHUNG_IDX);
+  nlC.forEach(function(nl){cols.push({h:'NL: '+nl[0],key:nl[1],w:12,note:'T / Đ / CCG'});});
+  // NL đặc thù
+  var nlD=NL.slice(NL_CHUNG_IDX);
+  nlD.forEach(function(nl){cols.push({h:'NL: '+nl[0],key:nl[1],w:12,note:'T / Đ / CCG'});});
+  // PC
+  PC.forEach(function(pc){cols.push({h:'PC: '+pc[0],key:pc[1],w:12,note:'T / Đ / CCG'});});
+  // Lên lớp
+  cols.push({h:'Lên lớp',key:'len_lop',w:10,note:'Có / Không'});
+  return cols;
+}
+
+function dlMauExcel(){
+  var lop=T('d-lop').value;
+  if(!lop){toast('⚠️ Chọn lớp cụ thể trước khi tải mẫu','warn');return;}
+  var k=parseInt(lop);
+  var cols=_mauCols(k);
+  var hsLop=SB.filter(function(s){return s.lop===lop;});
+  if(!hsLop.length){toast('⚠️ Không có HS trong lớp '+lop,'warn');return;}
+
+  // Dòng 1: Tiêu đề chính
+  var title=['MẪU NHẬP KẾT QUẢ ĐÁNH GIÁ — LỚP '+lop+' — NĂM HỌC 2025-2026'];
+  for(var ti=1;ti<cols.length;ti++)title.push('');
+
+  // Dòng 2: Hướng dẫn
+  var guide=['Hướng dẫn: Nhập đánh giá (HTT/HT/CHT), điểm (0-10), NL+PC (T/Đ/CCG), Lên lớp (Có/Không). Không sửa cột STT, Mã HS.'];
+  for(var gi=1;gi<cols.length;gi++)guide.push('');
+
+  // Dòng 3: Header cột
+  var headers=cols.map(function(c){return c.h;});
+
+  // Dòng 4: Ghi chú giá trị hợp lệ
+  var notes=cols.map(function(c){return c.note||'';});
+
+  // Dữ liệu HS (có sẵn điểm nếu đã nhập)
+  var rows=hsLop.map(function(s,i){
+    var g=grades[s.ma]||{};
+    return cols.map(function(c){
+      if(c.key==='_stt')return i+1;
+      if(c.key==='_ma')return s.ma;
+      if(c.key==='_ten')return s.ten;
+      return g[c.key]||'';
+    });
+  });
+
+  var aoa=[title,guide,headers,notes].concat(rows);
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+
+  // Set column widths
+  ws['!cols']=cols.map(function(c){return{wch:c.w};});
+
+  // Merge title row
+  ws['!merges']=[
+    {s:{r:0,c:0},e:{r:0,c:cols.length-1}},
+    {s:{r:1,c:0},e:{r:1,c:cols.length-1}}
+  ];
+
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Lop_'+lop);
+
+  // Thêm sheet hướng dẫn
+  var hdRows=[
+    ['HƯỚNG DẪN NHẬP DỮ LIỆU'],
+    [''],
+    ['1. CỘT ĐÁNH GIÁ MÔN HỌC (ĐG):'],
+    ['   - HTT = Hoàn thành tốt'],
+    ['   - HT  = Hoàn thành'],
+    ['   - CHT = Chưa hoàn thành'],
+    [''],
+    ['2. CỘT ĐIỂM KIỂM TRA ĐỊNH KỲ:'],
+    ['   - Nhập số từ 0 đến 10'],
+    ['   - Chỉ có ở các môn: Toán, Tiếng Việt'+(k>=3?', Ngoại ngữ':'')+(k>=4?', Khoa học, LS-ĐL, Tin học, Công nghệ':'')],
+    [''],
+    ['3. CỘT NĂNG LỰC (NL) VÀ PHẨM CHẤT (PC):'],
+    ['   - T   = Tốt'],
+    ['   - Đ   = Đạt'],
+    ['   - CCG = Chưa đạt'],
+    [''],
+    ['4. CỘT LÊN LỚP:'],
+    ['   - Có / Không'],
+    [''],
+    ['5. LƯU Ý:'],
+    ['   - KHÔNG sửa/xóa cột STT, Mã HS'],
+    ['   - Có thể để trống ô chưa có kết quả'],
+    ['   - Sau khi nhập xong, lưu file và tải lên hệ thống']
+  ];
+  var ws2=XLSX.utils.aoa_to_sheet(hdRows);
+  ws2['!cols']=[{wch:60}];
+  XLSX.utils.book_append_sheet(wb,ws2,'HuongDan');
+
+  XLSX.writeFile(wb,'Mau_NhapDiem_Lop'+lop+'.xlsx');
+  toast('📥 Đã tải mẫu lớp '+lop,'ok');
+}
+
+function onDiemFile(inp){
+  if(!inp.files.length)return;
+  var lop=T('d-lop').value;
+  if(!lop){toast('⚠️ Chọn lớp trước khi nhập','warn');inp.value='';return;}
+  var file=inp.files[0];
+  if(file.size>5*1024*1024){toast('❌ File quá lớn (>5MB)','err');inp.value='';return;}
+  loader('Đọc file Excel...');
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      loader();
+      var wb=XLSX.read(e.target.result,{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      _parseDiemExcel(raw,lop);
+    }catch(err){
+      loader();toast('❌ Lỗi đọc file: '+err.message,'err');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  inp.value='';
+}
+
+function _parseDiemExcel(raw,lop){
+  var k=parseInt(lop);
+  var cols=_mauCols(k);
+
+  // Tìm dòng header (có 'Mã HS' hoặc 'Họ và tên')
+  var headerRow=-1;
+  for(var ri=0;ri<Math.min(raw.length,10);ri++){
+    var rowStr=raw[ri].join('|').toLowerCase();
+    if(rowStr.indexOf('mã hs')>=0||rowStr.indexOf('họ và tên')>=0||rowStr.indexOf('ma hs')>=0){
+      headerRow=ri;break;
+    }
+  }
+  if(headerRow<0){toast('❌ Không tìm thấy dòng tiêu đề (Mã HS, Họ và tên)','err');return;}
+
+  var headers=raw[headerRow].map(function(h){return String(h).trim();});
+
+  // Map header to col keys
+  var colMap={};
+  cols.forEach(function(c){
+    for(var ci=0;ci<headers.length;ci++){
+      if(headers[ci]===c.h){colMap[c.key]=ci;break;}
+    }
+  });
+
+  // Kiểm tra cột Mã HS
+  if(colMap['_ma']===undefined){toast('❌ Không tìm thấy cột "Mã HS"','err');return;}
+
+  var dataRows=raw.slice(headerRow+1);
+  // Bỏ dòng ghi chú nếu có (dòng đầu sau header có thể là notes)
+  if(dataRows.length>0){
+    var firstMa=String(dataRows[0][colMap['_ma']]||'').trim();
+    if(!firstMa||firstMa.toLowerCase().indexOf('htt')>=0||firstMa.toLowerCase().indexOf('htc')>=0||/^[^0-9]/.test(firstMa)&&firstMa.length<5){
+      dataRows=dataRows.slice(1);
+    }
+  }
+
+  var updated=0,skipped=0,errors=[];
+  var validDG=['HTT','HT','CHT',''];
+  var validNLPC=['T','Đ','CCG',''];
+  var validLL=['Có','Không',''];
+
+  dataRows.forEach(function(row,ri){
+    var ma=String(row[colMap['_ma']]||'').trim();
+    if(!ma)return;
+
+    // Tìm HS trong SB
+    var hs=SB.find(function(s){return s.ma===ma;});
+    if(!hs){skipped++;return;}
+    if(hs.lop!==lop){skipped++;return;}
+
+    var g=Object.assign({},grades[ma]||{});
+    var hasData=false;
+
+    cols.forEach(function(c){
+      if(c.key.charAt(0)==='_')return; // Skip STT, ma, ten
+      var ci=colMap[c.key];
+      if(ci===undefined)return;
+      var val=String(row[ci]||'').trim();
+      if(!val)return;
+
+      // Validate
+      if(c.key==='len_lop'){
+        if(val==='Có'||val==='Không'){g[c.key]=val;hasData=true;}
+        else errors.push('Dòng '+(ri+1)+': Lên lớp "'+val+'" không hợp lệ');
+      }else if(c.key.indexOf('diem_')===0){
+        var num=parseInt(val);
+        if(!isNaN(num)&&num>=0&&num<=10){g[c.key]=String(num);hasData=true;}
+        else errors.push('Dòng '+(ri+1)+': Điểm "'+val+'" không hợp lệ (0-10)');
+      }else if(c.key.indexOf('mon_')===0){
+        var upper=val.toUpperCase();
+        if(upper==='HTT'||upper==='HT'||upper==='CHT'){g[c.key]=upper;hasData=true;}
+        else errors.push('Dòng '+(ri+1)+': ĐG "'+val+'" không hợp lệ (HTT/HT/CHT)');
+      }else if(c.key.indexOf('nl_')===0||c.key.indexOf('pc_')===0){
+        if(val==='T'||val==='Đ'||val==='CCG'){g[c.key]=val;hasData=true;}
+        else errors.push('Dòng '+(ri+1)+': NL/PC "'+val+'" không hợp lệ (T/Đ/CCG)');
+      }
+    });
+
+    if(hasData){
+      // Tính KQGD tự động
+      var kq=cTT(ma,hs.khoi);
+      if(kq){g.hoan_thanh=kq==='CHT'?'CHT':'HT';g.kqgd=kq;}
+      g.updated_at=new Date().toLocaleString('vi-VN');
+      g.updated_by=CU?CU.username:'excel';
+      grades[ma]=g;
+      updated++;
+    }
+  });
+
+  // Lưu local
+  try{localStorage.setItem('_grades',JSON.stringify(grades));}catch(e){}
+  merge();updateAll();
+
+  // Hiện kết quả
+  var msg='✅ Nhập xong: '+updated+' HS cập nhật';
+  if(skipped)msg+=', '+skipped+' bỏ qua';
+  if(errors.length)msg+=', '+errors.length+' lỗi';
+  toast(msg,errors.length?'warn':'ok');
+
+  T('d-import-info').innerHTML='<span style="color:var(--g)">'+updated+' HS đã nhập</span>'
+    +(skipped?' · <span style="color:var(--o)">'+skipped+' bỏ qua</span>':'')
+    +(errors.length?' · <span style="color:var(--r)">'+errors.length+' lỗi</span>':'')
+    +' — <b>Nhấn "☁️ Lưu lớp lên Sheets"</b>';
+
+  if(errors.length>0&&errors.length<=10){
+    console.warn('Lỗi nhập Excel:');
+    errors.forEach(function(e){console.warn('  '+e);});
+  }
+}
 
 // MODAL: NHẬP ĐIỂM
 function openM(idx){
