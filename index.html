@@ -569,7 +569,7 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
 // ┌──────────────────────────────────────────────────────────┐
 // │  CẤU HÌNH — V2.0                                        │
 // └──────────────────────────────────────────────────────────┘
-var DEFAULT_GAS = 'https://script.google.com/macros/s/AKfycbxhZjtXhBDfidyKWJjRW0NTpT1tbXOBnyLcF_xLYMLD5b_9IKpgOak4y0vhkGvUi4MQ/exec';
+var DEFAULT_GAS = 'https://script.google.com/macros/s/AKfycbwY01v2kKGvXIzBd0CSSeTvA428sb9-D3-o_1NdBNsl9YZQhSAjTfxSQ1yawFF-9O3m/exec';
 
 var SB   = JSON.parse(document.getElementById('_d_sb').textContent);
 var SUBJ = JSON.parse(document.getElementById('_d_subj').textContent);
@@ -1173,6 +1173,10 @@ function expBangCLWord(){
 
 // AUTO-LOGIN
 window.addEventListener('load',function(){
+  // V2.0: Xóa cache URL cũ nếu DEFAULT_GAS đã thay đổi
+  var cachedGAS=localStorage.getItem('gas_url');
+  if(cachedGAS&&DEFAULT_GAS&&cachedGAS!==DEFAULT_GAS){localStorage.setItem('gas_url',DEFAULT_GAS);GAS=DEFAULT_GAS;}
+  // Check GAS URL from query string
   var urlP=new URLSearchParams(window.location.search),gasP=urlP.get('gas');
   if(gasP&&gasP.indexOf('script.google.com')>=0){localStorage.setItem('gas_url',gasP);DEFAULT_GAS=gasP;GAS=gasP;window.history.replaceState({},'',window.location.href.split('?')[0]);setTimeout(function(){toast('✅ Máy đã cấu hình!','ok');},300);}
   var cu=localStorage.getItem('_cu');
