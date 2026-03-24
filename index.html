@@ -955,102 +955,95 @@ function dlMauExcel(){
   var hsLop=SB.filter(function(s){return s.lop===lop;});
   if(!hsLop.length){toast('\u26a0\ufe0f Không có HS','warn');return;}
 
-  // === BUILD MULTI-ROW HEADER (matching official format) ===
-  var r1=[],r2=[],r3=[],r4=[]; // 4 header rows
-  var merges=[];
-  var colIdx=0;
+  // NL đặc thù per khối (K3+ thêm Công nghệ, Tin học)
+  var nlDacThu=NL.slice(NL_CHUNG_IDX).map(function(x){return{name:x[0],key:x[1]};});
+  if(k>=3){
+    // Insert Công nghệ, Tin học after Khoa học (index 2 in đặc thù)
+    var insertAt=3;
+    nlDacThu.splice(insertAt,0,{name:'Công nghệ',key:'nl_Cong_nghe'},{name:'Tin học',key:'nl_Tin_hoc'});
+  }
 
-  // Fixed columns: STT, Mã lớp, Mã HS, Họ tên, Ngày sinh
-  var fixedCols=['STT','Mã lớp','Mã học sinh','Họ tên','Ngày sinh'];
-  fixedCols.forEach(function(h){
-    r1.push('');r2.push('');r3.push(h);r4.push('');
-    merges.push({s:{r:0,c:colIdx},e:{r:2,c:colIdx}});// merge rows 1-3
-    colIdx++;
+  // ═══ BUILD 3-ROW HEADER ═══
+  var r1=[],r2=[],r3=[];
+  var merges=[];
+  var ci=0;
+
+  // Fixed cols: STT, Mã lớp, Mã HS, Họ tên, Ngày sinh
+  var maLabel=k>=3?'Mã định danh\nBộ GD&ĐT':'Mã học sinh';
+  ['STT','Mã lớp',maLabel,'Họ tên','Ngày sinh'].forEach(function(h){
+    r1.push(h);r2.push('');r3.push('');
+    merges.push({s:{r:0,c:ci},e:{r:2,c:ci}});
+    ci++;
   });
 
-  // === MÔN HỌC ===
-  var monStartCol=colIdx;
+  // ═══ MÔN HỌC ═══
+  var monStart=ci;
   sj.forEach(function(mn){
-    var hasDiem=mn[2]&&mn[3];
-    if(hasDiem){
-      r1.push('');r1.push('');// 2 cols for this subject
+    var hd=mn[2]&&mn[3]; // có điểm?
+    if(hd){
+      r1.push('');r1.push('');
       r2.push(mn[0]);r2.push('');
-      merges.push({s:{r:1,c:colIdx},e:{r:1,c:colIdx+1}});// merge subject name across 2 cols
-      r3.push('Mức đạt');r3.push('Điểm KTĐK');
-      r4.push('T / H / C');r4.push('0-10');
-      colIdx+=2;
+      merges.push({s:{r:1,c:ci},e:{r:1,c:ci+1}});
+      r3.push('Mức đạt\nđược');r3.push('Điểm\nKTĐK');
+      ci+=2;
     }else{
       r1.push('');
       r2.push(mn[0]);
-      r3.push('Mức đạt');
-      r4.push('T / H / C');
-      colIdx++;
+      merges.push({s:{r:1,c:ci},e:{r:2,c:ci}});
+      r3.push('Mức đạt\nđược');
+      ci++;
     }
   });
-  var monEndCol=colIdx-1;
-  // Merge "Môn học và hoạt động giáo dục" across all subject cols
-  if(monEndCol>=monStartCol){
-    for(var mi=monStartCol;mi<=monEndCol;mi++)r1[mi]='';
-    r1[monStartCol]='Môn học và hoạt động giáo dục';
-    merges.push({s:{r:0,c:monStartCol},e:{r:0,c:monEndCol}});
-  }
+  var monEnd=ci-1;
+  r1[monStart]='Môn học và hoạt động giáo dục';
+  merges.push({s:{r:0,c:monStart},e:{r:0,c:monEnd}});
 
-  // === NĂNG LỰC CỐT LÕI ===
-  var nlStartCol=colIdx;
-  // NL chung header
-  var nlcStart=colIdx;
+  // ═══ NĂNG LỰC CỐT LÕI ═══
+  var nlStart=ci;
+  // NL chung
+  var nlcStart=ci;
   NL.slice(0,NL_CHUNG_IDX).forEach(function(nl){
-    r1.push('');r2.push('');
-    r3.push(nl[0].split(' ')[0]);
-    r4.push('T / Đ / C');
-    colIdx++;
+    r1.push('');r2.push('');r3.push(nl[0]);
+    merges.push({s:{r:1,c:ci},e:{r:2,c:ci}}); // merge r2+r3 for NL name
+    // Actually the template has NL name in r3, with r2 = "Năng lực chung" merged
+    ci++;
   });
-  var nlcEnd=colIdx-1;
-  if(nlcEnd>=nlcStart){
-    r2[nlcStart]='Năng lực chung';
-    merges.push({s:{r:1,c:nlcStart},e:{r:1,c:nlcEnd}});
-  }
-  // NL đặc thù header
-  var nldStart=colIdx;
-  NL.slice(NL_CHUNG_IDX).forEach(function(nl){
-    r1.push('');r2.push('');
-    r3.push(nl[0].substring(0,6));
-    r4.push('T / Đ / C');
-    colIdx++;
-  });
-  var nldEnd=colIdx-1;
-  if(nldEnd>=nldStart){
-    r2[nldStart]='Năng lực đặc thù';
-    merges.push({s:{r:1,c:nldStart},e:{r:1,c:nldEnd}});
-  }
-  var nlEndCol=colIdx-1;
-  if(nlEndCol>=nlStartCol){
-    r1[nlStartCol]='Năng lực cốt lõi';
-    merges.push({s:{r:0,c:nlStartCol},e:{r:0,c:nlEndCol}});
-  }
+  var nlcEnd=ci-1;
+  r2[nlcStart]='Năng lực chung';
+  merges.push({s:{r:1,c:nlcStart},e:{r:1,c:nlcEnd}});
 
-  // === PHẨM CHẤT ===
-  var pcStartCol=colIdx;
+  // NL đặc thù
+  var nldStart=ci;
+  nlDacThu.forEach(function(nl){
+    r1.push('');r2.push('');r3.push(nl.name);
+    ci++;
+  });
+  var nldEnd=ci-1;
+  r2[nldStart]='Năng lực đặc thù';
+  merges.push({s:{r:1,c:nldStart},e:{r:1,c:nldEnd}});
+
+  r1[nlStart]='Năng lực cốt lõi';
+  merges.push({s:{r:0,c:nlStart},e:{r:0,c:nldEnd}});
+
+  // ═══ PHẨM CHẤT ═══
+  var pcStart=ci;
   PC.forEach(function(pc){
-    r1.push('');r2.push('');
-    r3.push(pc[0].substring(0,6));
-    r4.push('T / Đ / C');
-    colIdx++;
+    r1.push('');r2.push(pc[0]);r3.push('');
+    merges.push({s:{r:1,c:ci},e:{r:2,c:ci}});
+    ci++;
   });
-  var pcEndCol=colIdx-1;
-  if(pcEndCol>=pcStartCol){
-    r1[pcStartCol]='Phẩm chất chủ yếu';
-    merges.push({s:{r:0,c:pcStartCol},e:{r:0,c:pcEndCol}});
-  }
+  var pcEnd=ci-1;
+  r1[pcStart]='Phẩm chất chủ yếu';
+  merges.push({s:{r:0,c:pcStart},e:{r:0,c:pcEnd}});
 
-  // === LÊN LỚP, HOÀN THÀNH, XẾP LOẠI ===
-  ['Lên lớp','Hoàn thành\nchương trình\nlớp học','Xếp loại'].forEach(function(h){
-    r1.push('');r2.push('');r3.push(h);r4.push(h==='Lên lớp'?'x = có':'');
-    merges.push({s:{r:0,c:colIdx},e:{r:2,c:colIdx}});
-    colIdx++;
+  // ═══ TAIL COLS ═══
+  [{h:'Hoàn thành\nchương trình\nlớp học'},{h:'Lên lớp'},{h:'Xếp loại'}].forEach(function(c){
+    r1.push(c.h);r2.push('');r3.push('');
+    merges.push({s:{r:0,c:ci},e:{r:2,c:ci}});
+    ci++;
   });
 
-  // === BUILD DATA ROWS ===
+  // ═══ DATA ROWS ═══
   var dataRows=hsLop.map(function(s,i){
     var g=grades[s.ma]||{};
     var row=[i+1,s.lop,s.ma,s.ten,s.ns];
@@ -1059,58 +1052,57 @@ function dlMauExcel(){
       row.push(mv?_storeToDisplay(mv,'mon'):'');
       if(mn[2]&&mn[3]) row.push(g[mn[2]]||'');
     });
-    NL.forEach(function(nl){var v=g[nl[1]]||'';row.push(v?_storeToDisplay(v,'nlpc'):'');});
-    PC.forEach(function(pc){var v=g[pc[1]]||'';row.push(v?_storeToDisplay(v,'nlpc'):'');});
-    // Lên lớp, hoàn thành, xếp loại
+    // NL chung
+    NL.slice(0,NL_CHUNG_IDX).forEach(function(nl){
+      var v=g[nl[1]]||'';row.push(v?_storeToDisplay(v,'nlpc'):'');
+    });
+    // NL đặc thù (with Công nghệ, Tin học for K3+)
+    nlDacThu.forEach(function(nl){
+      var v=g[nl.key]||'';row.push(v?_storeToDisplay(v,'nlpc'):'');
+    });
+    // PC
+    PC.forEach(function(pc){
+      var v=g[pc[1]]||'';row.push(v?_storeToDisplay(v,'nlpc'):'');
+    });
     var kq=cTT(s.ma,s.khoi);
-    row.push(g.len_lop==='Có'?'x':'');
     row.push(kq?kqText(kq):'');
+    row.push(g.len_lop==='Có'?'x':'');
     row.push(kq||'');
     return row;
   });
 
-  var aoa=[r1,r2,r3,r4].concat(dataRows);
+  var aoa=[r1,r2,r3].concat(dataRows);
   var ws=XLSX.utils.aoa_to_sheet(aoa);
-
-  // Column widths
-  var widths=[];
-  for(var wi=0;wi<colIdx;wi++){
-    if(wi<5)widths.push({wch:[5,6,14,22,12][wi]});
-    else widths.push({wch:8});
-  }
-  ws['!cols']=widths;
   ws['!merges']=merges;
+
+  // Col widths
+  var cw=[];for(var w=0;w<ci;w++)cw.push({wch:w<2?5:w===2?16:w===3?22:w===4?12:8});
+  ws['!cols']=cw;
 
   var wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Lop_'+lop);
 
-  // === GUIDE SHEET ===
+  // GUIDE SHEET
   var hd=[
-    ['HƯỚNG DẪN NHẬP DỮ LIỆU — LỚP '+lop],[''],
-    ['1. MÔN HỌC (cột Mức đạt):'],
+    ['HƯỚNG DẪN NHẬP KẾT QUẢ — LỚP '+lop],[''],
+    ['1. MÔN HỌC (cột Mức đạt được):'],
     ['   T = Hoàn thành tốt (Tốt)'],
     ['   H = Hoàn thành'],
     ['   C = Chưa hoàn thành'],
-    ['   ⚠ CHỈ ĐƯỢC NHẬP: T, H hoặc C (viết hoa)'],[''],
+    ['   \u26a0 CHỈ ĐƯỢC NHẬP: T, H hoặc C (viết hoa)'],[''],
     ['2. ĐIỂM KTĐK:'],
-    ['   Nhập số nguyên từ 0 đến 10'],
-    ['   ⚠ KHÔNG nhập chữ, số thập phân, hoặc số > 10'],[''],
+    ['   Nhập số nguyên từ 0 đến 10'],[''],
     ['3. NĂNG LỰC + PHẨM CHẤT:'],
-    ['   T = Tốt'],
-    ['   Đ = Đạt'],
-    ['   C = Chưa đạt'],
-    ['   ⚠ CHỈ ĐƯỢC NHẬP: T, Đ hoặc C'],[''],
-    ['4. LÊN LỚP: Nhập x nếu lên lớp, để trống nếu không'],[''],
-    ['5. LƯU Ý:'],
-    ['   - KHÔNG sửa cột STT, Mã lớp, Mã học sinh'],
-    ['   - Cột Hoàn thành & Xếp loại: hệ thống tự tính'],
-    ['   - Lưu file → Tải lên hệ thống → Nhấn "Lưu lớp lên Sheets"']
+    ['   T = Tốt'],['   Đ = Đạt'],['   C = Chưa đạt'],
+    ['   \u26a0 CHỈ ĐƯỢC NHẬP: T, Đ hoặc C'],[''],
+    ['4. LÊN LỚP: Nhập x = lên lớp, để trống = không'],[''],
+    ['5. LƯU Ý: KHÔNG sửa STT, Mã lớp, Mã HS. Cột Hoàn thành & Xếp loại hệ thống tự tính.']
   ];
   var ws2=XLSX.utils.aoa_to_sheet(hd);
   ws2['!cols']=[{wch:60}];
   XLSX.utils.book_append_sheet(wb,ws2,'HuongDan');
 
-  XLSX.writeFile(wb,'Mau_NhapDiem_Lop'+lop+'.xlsx');
+  XLSX.writeFile(wb,'BangTheoDoi_Lop'+lop+'.xlsx');
   toast('\ud83d\udce5 Tải mẫu lớp '+lop+' ('+hsLop.length+' HS)','ok');
 }
 
@@ -1299,8 +1291,13 @@ function _parseDiemExcel(raw,lop){
 
   T('d-import-info').innerHTML='<span style="color:var(--g)">'+updated+' HS đã nhập</span>'
     +(skipped?' · <span style="color:var(--o)">'+skipped+' bỏ qua</span>':'')
-    +(errors.length?' · <span style="color:var(--r)">'+errors.length+' lỗi</span>':'')
-    +' — <b>Nhấn "☁️ Lưu lớp lên Sheets"</b>';
+    +(errors.length?' · <span style="color:var(--r)">'+errors.length+' lỗi</span>':'');
+
+  // Auto-save to Sheets
+  if(updated>0&&GAS){
+    T('d-import-info').innerHTML+=' — <span style="color:var(--o)">Đang lưu lên Sheets...</span>';
+    setTimeout(function(){saveAllLop();},500);
+  }
 
   if(errors.length>0&&errors.length<=10){
     console.warn('Lỗi nhập Excel:');
@@ -1620,8 +1617,13 @@ function _parseDiemGV(raw,subjMap){
 
   T('d-gv-info').innerHTML='<span style="color:var(--g)">'+updated+' HS đã nhập</span>'
     +(skipped?' · <span style="color:var(--o)">'+skipped+' bỏ qua</span>':'')
-    +(errors.length?' · <span style="color:var(--r)">'+errors.length+' lỗi</span>':'')
-    +' — <b>Nhấn "☁️ Lưu lớp lên Sheets"</b>';
+    +(errors.length?' · <span style="color:var(--r)">'+errors.length+' lỗi</span>':'');
+
+  // Auto-save to Sheets
+  if(updated>0&&GAS){
+    T('d-gv-info').innerHTML+=' — <span style="color:var(--o)">Đang lưu lên Sheets...</span>';
+    setTimeout(function(){saveAllLop();},500);
+  }
 
   if(errors.length>0&&errors.length<=15){
     console.warn('Lỗi nhập Excel GV:');
