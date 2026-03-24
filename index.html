@@ -885,11 +885,11 @@ function renderD(){
       var mv=g[mn[1]]||'',dv=mn[2]&&mn[3]?(g[mn[2]]!==undefined&&g[mn[2]]!==''?g[mn[2]]:''):'';
       if(mn[2]&&mn[3]){
         // Có điểm
-        var mBl=mv?'<span style="font-size:9px;'+({HTT:'color:#00695c',HT:'color:var(--p)',CHT:'color:var(--r)'}[mv]||'color:#999')+'">'+({HTT:'T',HT:'Đ',CHT:'C'}[mv]||mv)+'</span>':'<span style="color:#ddd;font-size:9px">—</span>';
+        var mBl=mv?'<span style="font-size:9px;font-weight:600;'+({HTT:'color:#00695c',HT:'color:var(--p)',CHT:'color:var(--r)'}[mv]||'color:#999')+'">'+({HTT:'T',HT:'H',CHT:'C'}[mv]||mv)+'</span>':'<span style="color:#ddd;font-size:9px">—</span>';
         var dBl=dv!==''?'<b style="font-size:11px">'+dv+'</b>':'';
         r+='<td class="c" style="padding:3px 2px;line-height:1.1;white-space:nowrap">'+mBl+(dv!==''?'<br>':'')+ dBl+'</td>';
       } else {
-        r+='<td class="c" style="padding:3px 2px">'+( mv?'<span style="font-size:9px;'+({HTT:'color:#00695c;font-weight:600',HT:'color:var(--p)',CHT:'color:var(--r)'}[mv]||'')+'">'+({HTT:'T',HT:'Đ',CHT:'C'}[mv]||mv)+'</span>':'<span style="color:#ddd;font-size:9px">—</span>')+'</td>';
+        r+='<td class="c" style="padding:3px 2px">'+( mv?'<span style="font-size:9px;font-weight:600;'+({HTT:'color:#00695c',HT:'color:var(--p)',CHT:'color:var(--r)'}[mv]||'')+'">'+({HTT:'T',HT:'H',CHT:'C'}[mv]||mv)+'</span>':'<span style="color:#ddd;font-size:9px">—</span>')+'</td>';
       }
     });
     // NL
@@ -919,7 +919,6 @@ function dPg(p){dP=Math.max(1,Math.min(p,Math.ceil(dF.length/PZ)));renderD();}
 // └──────────────────────────────────────────────────────────┘
 
 function _mauCols(k){
-  // Tạo danh sách cột cho mẫu Excel theo khối
   var sj=_visibleSubj(k);
   var cols=[
     {h:'STT',key:'_stt',w:5},
@@ -927,20 +926,25 @@ function _mauCols(k){
     {h:'Họ và tên',key:'_ten',w:25}
   ];
   sj.forEach(function(mn){
-    cols.push({h:mn[0]+' (ĐG)',key:mn[1],w:10,note:'HTT / HT / CHT'});
-    if(mn[2]&&mn[3]) cols.push({h:mn[0]+' (Điểm)',key:mn[2],w:10,note:'0-10'});
+    cols.push({h:mn[0]+' (ĐG)',key:mn[1],w:10,note:'T / H / C',type:'mon'});
+    if(mn[2]&&mn[3]) cols.push({h:mn[0]+' (Điểm)',key:mn[2],w:10,note:'0-10',type:'diem'});
   });
-  // NL chung
-  var nlC=NL.slice(0,NL_CHUNG_IDX);
-  nlC.forEach(function(nl){cols.push({h:'NL: '+nl[0],key:nl[1],w:12,note:'T / Đ / CCG'});});
-  // NL đặc thù
-  var nlD=NL.slice(NL_CHUNG_IDX);
-  nlD.forEach(function(nl){cols.push({h:'NL: '+nl[0],key:nl[1],w:12,note:'T / Đ / CCG'});});
-  // PC
-  PC.forEach(function(pc){cols.push({h:'PC: '+pc[0],key:pc[1],w:12,note:'T / Đ / CCG'});});
-  // Lên lớp
+  NL.slice(0,NL_CHUNG_IDX).forEach(function(nl){cols.push({h:'NL: '+nl[0],key:nl[1],w:12,note:'T / Đ / C',type:'nlpc'});});
+  NL.slice(NL_CHUNG_IDX).forEach(function(nl){cols.push({h:'NL: '+nl[0],key:nl[1],w:12,note:'T / Đ / C',type:'nlpc'});});
+  PC.forEach(function(pc){cols.push({h:'PC: '+pc[0],key:pc[1],w:12,note:'T / Đ / C',type:'nlpc'});});
   cols.push({h:'Lên lớp',key:'len_lop',w:10,note:'Có / Không'});
   return cols;
+}
+// Chuyển đổi mã nhập ↔ mã lưu
+function _inputToStore(val,type){
+  if(type==='mon'){return{T:'HTT',H:'HT',C:'CHT'}[val.toUpperCase()]||val;}
+  if(type==='nlpc'){return{T:'T','Đ':'Đ','D':'Đ',C:'CCG'}[val.toUpperCase()]||val;}
+  return val;
+}
+function _storeToDisplay(val,type){
+  if(type==='mon'){return{HTT:'T',HT:'H',CHT:'C'}[val]||val;}
+  if(type==='nlpc'){return{T:'T','Đ':'Đ',CCG:'C'}[val]||val;}
+  return val;
 }
 
 function dlMauExcel(){
@@ -972,7 +976,9 @@ function dlMauExcel(){
       if(c.key==='_stt')return i+1;
       if(c.key==='_ma')return s.ma;
       if(c.key==='_ten')return s.ten;
-      return g[c.key]||'';
+      var v=g[c.key]||'';
+      if(v&&c.type)v=_storeToDisplay(v,c.type);
+      return v;
     });
   });
 
@@ -996,18 +1002,18 @@ function dlMauExcel(){
     ['HƯỚNG DẪN NHẬP DỮ LIỆU'],
     [''],
     ['1. CỘT ĐÁNH GIÁ MÔN HỌC (ĐG):'],
-    ['   - HTT = Hoàn thành tốt'],
-    ['   - HT  = Hoàn thành'],
-    ['   - CHT = Chưa hoàn thành'],
+    ['   - T = Hoàn thành tốt (Tốt)'],
+    ['   - H = Hoàn thành'],
+    ['   - C = Chưa hoàn thành'],
     [''],
     ['2. CỘT ĐIỂM KIỂM TRA ĐỊNH KỲ:'],
     ['   - Nhập số từ 0 đến 10'],
     ['   - Chỉ có ở các môn: Toán, Tiếng Việt'+(k>=3?', Ngoại ngữ':'')+(k>=4?', Khoa học, LS-ĐL, Tin học, Công nghệ':'')],
     [''],
     ['3. CỘT NĂNG LỰC (NL) VÀ PHẨM CHẤT (PC):'],
-    ['   - T   = Tốt'],
-    ['   - Đ   = Đạt'],
-    ['   - CCG = Chưa đạt'],
+    ['   - T = Tốt'],
+    ['   - Đ = Đạt'],
+    ['   - C = Chưa đạt'],
     [''],
     ['4. CỘT LÊN LỚP:'],
     ['   - Có / Không'],
@@ -1142,11 +1148,13 @@ function _parseDiemExcel(raw,lop){
         else errors.push('Dòng '+(ri+1)+': Điểm "'+val+'" không hợp lệ (0-10)');
       }else if(c.key.indexOf('mon_')===0){
         var upper=val.toUpperCase();
-        if(upper==='HTT'||upper==='HT'||upper==='CHT'){g[c.key]=upper;hasData=true;}
-        else errors.push('Dòng '+(ri+1)+': ĐG "'+val+'" không hợp lệ (HTT/HT/CHT)');
+        var mapped={T:'HTT',H:'HT',C:'CHT',HTT:'HTT',HT:'HT',CHT:'CHT'}[upper];
+        if(mapped){g[c.key]=mapped;hasData=true;}
+        else errors.push('Dòng '+(ri+1)+': ĐG "'+val+'" không hợp lệ (T/H/C)');
       }else if(c.key.indexOf('nl_')===0||c.key.indexOf('pc_')===0){
-        if(val==='T'||val==='Đ'||val==='CCG'){g[c.key]=val;hasData=true;}
-        else errors.push('Dòng '+(ri+1)+': NL/PC "'+val+'" không hợp lệ (T/Đ/CCG)');
+        var mappedNL={T:'T','Đ':'Đ',D:'Đ',C:'CCG',CCG:'CCG'}[val.toUpperCase()]||{T:'T','Đ':'Đ',C:'CCG'}[val];
+        if(mappedNL){g[c.key]=mappedNL;hasData=true;}
+        else errors.push('Dòng '+(ri+1)+': NL/PC "'+val+'" không hợp lệ (T/Đ/C)');
       }
     });
 
@@ -1267,15 +1275,22 @@ function dlMauGV(){
   subjKeys.forEach(function(skey){
     var name=_subjKeyToName(skey);
     if(skey.indexOf('mon_')===0){
-      cols.push({h:name+' (ĐG)',key:skey,w:12,note:'HTT / HT / CHT',type:'mon'});
-      // Kiểm tra nếu bất kỳ khối nào có điểm cho môn này
+      cols.push({h:name+' (ĐG)',key:skey,w:12,note:'T / H / C',type:'mon'});
       var anyDiem=false;
       allLops.forEach(function(lop){var k=parseInt(lop);if(_subjHasDiem(skey,k))anyDiem=true;});
       if(anyDiem) cols.push({h:name+' (Điểm)',key:'diem_'+skey.replace('mon_',''),w:10,note:'0-10',type:'diem',monKey:skey});
     }else{
-      cols.push({h:name,key:skey,w:14,note:skey.indexOf('nl_')===0||skey.indexOf('pc_')===0?'T / Đ / CCG':'',type:'nlpc'});
+      cols.push({h:name,key:skey,w:14,note:'T / Đ / C',type:'nlpc'});
     }
   });
+  // GVCN: nếu GV dạy nhiều môn (>=3) trong 1 lớp → thêm NL + PC
+  var gvcnLops={};
+  Object.keys(subjMap).forEach(function(lop){if(subjMap[lop].length>=3)gvcnLops[lop]=true;});
+  if(Object.keys(gvcnLops).length>0){
+    NL.forEach(function(nl){if(subjKeys.indexOf(nl[1])<0)cols.push({h:'NL: '+nl[0],key:nl[1],w:12,note:'T / Đ / C',type:'nlpc'});});
+    PC.forEach(function(pc){if(subjKeys.indexOf(pc[1])<0)cols.push({h:'PC: '+pc[0],key:pc[1],w:12,note:'T / Đ / C',type:'nlpc'});});
+    cols.push({h:'Lên lớp',key:'len_lop',w:10,note:'Có / Không'});
+  }
 
   // Dòng tiêu đề
   var title=['MẪU NHẬP KẾT QUẢ — '+(CU.hoten||CU.username)+' — '+CU.phan_cong];
@@ -1295,11 +1310,12 @@ function dlMauGV(){
       if(c.key==='_ma')return s.ma;
       if(c.key==='_ten')return s.ten;
       if(c.type==='diem'){
-        // Lấy điểm key tương ứng khối
         var dk=_subjDiemKey(c.monKey,s.khoi);
         return dk?g[dk]||'':'';
       }
-      return g[c.key]||'';
+      var v=g[c.key]||'';
+      if(v&&c.type)v=_storeToDisplay(v,c.type);
+      return v;
     });
   });
 
@@ -1318,9 +1334,9 @@ function dlMauGV(){
     ['Lớp phụ trách: '+allLops.join(', ')],
     ['Tổng số HS: '+allHS.length],[''],
     ['CÁCH NHẬP:'],
-    ['- Cột ĐG (đánh giá): HTT = Hoàn thành tốt, HT = Hoàn thành, CHT = Chưa HT'],
+    ['- Cột ĐG (đánh giá): T = Hoàn thành tốt, H = Hoàn thành, C = Chưa hoàn thành'],
     ['- Cột Điểm: số từ 0 đến 10 (chỉ có ở một số môn/khối)'],
-    ['- Cột NL/PC: T = Tốt, Đ = Đạt, CCG = Chưa đạt'],[''],
+    ['- Cột NL/PC: T = Tốt, Đ = Đạt, C = Chưa đạt'],[''],
     ['LƯU Ý:'],
     ['- KHÔNG sửa cột STT, Lớp, Mã HS'],
     ['- Có thể để trống ô chưa có kết quả'],
@@ -1452,8 +1468,9 @@ function _parseDiemGV(raw,subjMap){
 
       if(col.type==='mon'){
         var upper=val.toUpperCase();
-        if(upper==='HTT'||upper==='HT'||upper==='CHT'){g[col.key]=upper;hasData=true;}
-        else errors.push('Dòng '+(ri+1)+': "'+val+'" ≠ HTT/HT/CHT');
+        var mapped={T:'HTT',H:'HT',C:'CHT',HTT:'HTT',HT:'HT',CHT:'CHT'}[upper];
+        if(mapped){g[col.key]=mapped;hasData=true;}
+        else errors.push('Dòng '+(ri+1)+': "'+val+'" ≠ T/H/C');
       }else if(col.type==='diem'){
         var dk=_subjDiemKey(col.key,hs.khoi);
         if(dk){
@@ -1462,8 +1479,9 @@ function _parseDiemGV(raw,subjMap){
           else errors.push('Dòng '+(ri+1)+': Điểm "'+val+'" ≠ 0-10');
         }
       }else if(col.type==='nlpc'){
-        if(val==='T'||val==='Đ'||val==='CCG'){g[col.key]=val;hasData=true;}
-        else errors.push('Dòng '+(ri+1)+': "'+val+'" ≠ T/Đ/CCG');
+        var mappedNL={T:'T','Đ':'Đ',D:'Đ',C:'CCG',CCG:'CCG'}[val.toUpperCase()]||{T:'T','Đ':'Đ',C:'CCG'}[val];
+        if(mappedNL){g[col.key]=mappedNL;hasData=true;}
+        else errors.push('Dòng '+(ri+1)+': "'+val+'" ≠ T/Đ/C');
       }
     });
 
