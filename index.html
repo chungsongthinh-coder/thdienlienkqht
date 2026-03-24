@@ -494,9 +494,9 @@ body:not(.is-gvbm) .gv-only{display:none!important}
     <input type="file" id="d-file-inp" accept=".xlsx,.xls,.csv" style="display:none" onchange="onDiemFile(this)">
     <span id="d-import-info" style="font-size:11px;color:var(--slate3)"></span>
   </div>
-  <div class="tb gv-only" style="margin-bottom:6px;display:none" id="d-import-gv">
+  <div class="tb gv-only" style="margin-bottom:6px" id="d-import-gv">
     <button class="btn bpur" onclick="dlMauGV()">📥 Tải mẫu theo phân công</button>
-    <button class="btn bg" onclick="T('d-file-gv').click()">📤 Nhập từ Excel</button>
+    <button class="btn bg" onclick="T('d-file-gv').click()">📤 Nhập kết quả từ Excel</button>
     <input type="file" id="d-file-gv" accept=".xlsx,.xls,.csv" style="display:none" onchange="onDiemFileGV(this)">
     <span id="d-gv-info" style="font-size:11px;color:var(--slate3)"></span>
   </div>
