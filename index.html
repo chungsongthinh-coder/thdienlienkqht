@@ -915,6 +915,52 @@ var APP_VERSION='3.0';
 var DEFAULT_GAS = 'https://script.google.com/macros/s/AKfycbwY01v2kKGvXIzBd0CSSeTvA428sb9-D3-o_1NdBNsl9YZQhSAjTfxSQ1yawFF-9O3m/exec';
 
 var SB   = JSON.parse(document.getElementById('_d_sb').textContent);
+
+// ═══ PHÂN QUYỀN DỮ LIỆU ═══
+// mySB() = danh sách HS user được phép truy cập
+// Admin: toàn bộ. GV: chỉ lớp được phân công
+function mySB(){
+  if(!CU) return SB;
+  if(CU.role==='admin') return SB;
+  // GV: lọc theo lớp phụ trách + lớp trong phân công
+  var myClasses=_myClasses();
+  if(!myClasses.length) return SB; // Fallback nếu chưa có phân công
+  return SB.filter(function(s){return myClasses.indexOf(s.lop)>=0;});
+}
+// Danh sách lớp user được truy cập
+function _myClasses(){
+  if(!CU||CU.role==='admin') return null; // null = tất cả
+  var cls=[];
+  // Lớp phụ trách (GVCN)
+  if(CU.lop&&CU.lop.trim()) cls.push(CU.lop.trim());
+  // Lớp trong phân công giảng dạy
+  if(userPerm){
+    Object.keys(userPerm).forEach(function(lop){if(cls.indexOf(lop)<0)cls.push(lop);});
+  }
+  return cls;
+}
+// Kiểm tra quyền truy cập 1 HS
+function canAccessStudent(s){
+  if(!CU||CU.role==='admin') return true;
+  var cls=_myClasses();
+  if(!cls||!cls.length) return true;
+  return cls.indexOf(s.lop)>=0;
+}
+// Dropdown chỉ hiện lớp được phân công
+function myBldLop(id,khoi){
+  var el=T(id);if(!el)return;
+  var cls=_myClasses();
+  var o='<option value="">Tất cả lớp</option>';
+  var ks=khoi?[parseInt(khoi)]:[1,2,3,4,5];
+  ks.forEach(function(k){['A','B','C','D','E'].forEach(function(c){
+    var lop=k+c;
+    if(cls&&cls.indexOf(lop)<0) return; // Bỏ qua lớp không phân công
+    o+='<option value="'+lop+'">Lớp '+lop+'</option>';
+  });});
+  el.innerHTML=o;
+  // Nếu GV chỉ có 1 lớp, tự chọn luôn
+  if(cls&&cls.length===1){el.value=cls[0];}
+}
 var SUBJ = JSON.parse(document.getElementById('_d_subj').textContent);
 var NL   = JSON.parse(document.getElementById('_d_nl').textContent);
 var PC   = JSON.parse(document.getElementById('_d_pc').textContent);
@@ -1117,7 +1163,7 @@ function initApp(){
   grades=allGrades[curPeriod]?JSON.parse(JSON.stringify(allGrades[curPeriod])):{};
   allGrades[curPeriod]=grades;
   try{nhanXet=JSON.parse(localStorage.getItem('_nhanxet')||'{}');}catch(e){nhanXet={};}
-  merge();buildSide();bldLop('hs-lop','');bldLop('d-lop','1');bldLop('hb-lop','');
+  merge();buildSide();myBldLop('hs-lop','');myBldLop('d-lop','1');myBldLop('hb-lop','');
   dK(1,document.querySelectorAll('#diem-kts .kt')[0]);
   hsFil();updS();updP();renderSt();renderTK(0);
   var st=T('sett-status');
@@ -1126,21 +1172,21 @@ function initApp(){
   else sUI('','Chưa kết nối');
 }
 
-function merge(){allS=SB.map(function(s){return Object.assign({},s,grades[s.ma]||{});});}
+function merge(){allS=mySB().map(function(s){return Object.assign({},s,grades[s.ma]||{});});}
 function updateAll(){merge();buildSide();hsFil();dFil();updS();updP();renderSt();renderTK(tkKF);
   // Save only current period
   allGrades[curPeriod]=grades;
   try{localStorage.setItem('_allGrades',JSON.stringify(allGrades));}catch(e){}
 }
-function updS(){var d=allS.filter(isDone).length;T('c-nhap').textContent=d;T('c-chua').textContent=SB.length-d;T('c-tot').textContent=SB.length;T('c-nam').textContent=SB.filter(function(s){return s.gt==='Nam';}).length;T('c-nu').textContent=SB.filter(function(s){return s.gt==='Nữ';}).length;}
-function updP(){var d=allS.filter(isDone).length,p=SB.length?Math.round(d/SB.length*100):0;if(T('s-prog'))T('s-prog').textContent=d+'/'+SB.length;if(T('s-pb'))T('s-pb').style.width=p+'%';if(T('s-pct'))T('s-pct').textContent=p+'%';if(T('sb-tot'))T('sb-tot').textContent=SB.length;}
+function updS(){var ms=mySB();var d=allS.filter(isDone).length;T('c-nhap').textContent=d;T('c-chua').textContent=ms.length-d;T('c-tot').textContent=ms.length;T('c-nam').textContent=ms.filter(function(s){return s.gt==='Nam';}).length;T('c-nu').textContent=ms.filter(function(s){return s.gt==='Nữ';}).length;}
+function updP(){var ms=mySB();var d=allS.filter(isDone).length,p=ms.length?Math.round(d/ms.length*100):0;if(T('s-prog'))T('s-prog').textContent=d+'/'+ms.length;if(T('s-pb'))T('s-pb').style.width=p+'%';if(T('s-pct'))T('s-pct').textContent=p+'%';if(T('sb-tot'))T('sb-tot').textContent=ms.length;}
 
 // SIDEBAR + NAV
 function buildSide(){
   var el=T('side-lops');if(!el)return;
   var h='';
   [1,2,3,4,5].forEach(function(k){['A','B','C','D','E'].forEach(function(c){
-    var lop=k+c,hs=SB.filter(function(s){return s.lop===lop;}),tot=hs.length,done=hs.filter(isDone).length;
+    var lop=k+c,hs=mySB().filter(function(s){return s.lop===lop;}),tot=hs.length,done=hs.filter(isDone).length;
     var cl=done===tot?'ok':done>0?'pt':'no';
     h+='<div class="si" onclick="jumpLop(\''+lop+'\')"><span style="width:15px;text-align:center">📋</span>Lớp '+lop+'<span class="sbdg '+cl+'">'+done+'/'+tot+'</span></div>';
   });});
@@ -1187,8 +1233,8 @@ function cTT(ma,k){
 }
 
 // PAGE: HỌC SINH
-function hsKhoi(){bldLop('hs-lop',T('hs-kh').value);hsFil();}
-function hsRst(){T('hs-q').value='';T('hs-kh').value='';T('hs-gt').value='';T('hs-nt').value='';bldLop('hs-lop','');hsFil();}
+function hsKhoi(){myBldLop('hs-lop',T('hs-kh').value);hsFil();}
+function hsRst(){T('hs-q').value='';T('hs-kh').value='';T('hs-gt').value='';T('hs-nt').value='';myBldLop('hs-lop','');hsFil();}
 function hsFil(){
   var q=T('hs-q').value.toLowerCase(),kh=T('hs-kh').value,lop=T('hs-lop').value,gt=T('hs-gt').value,nt=T('hs-nt').value;
   hsF=allS.filter(function(s){
@@ -1202,6 +1248,7 @@ function renderHS(){
   if(!tot){tb.innerHTML='<tr><td colspan="9"><div class="empty"><div class="ei">🔍</div><p>Không tìm thấy</p></div></td></tr>';T('hs-rc').textContent='';return;}
   tb.innerHTML=rows.map(function(s,i){
     var gi=SB.findIndex(function(b){return b.ma===s.ma;}),g=grades[s.ma]||{},kq=cTT(s.ma,s.khoi);
+    if(!canAccessStudent(s)){return '';}
     var abtn=canE(s.lop)?'<button class="abtn ae" onclick="openM('+gi+')">✏️</button>':'<button class="abtn alck">🔒</button>';
     var ll=g.len_lop==='Có'?'<span class="bl bl-ht">✓</span>':g.len_lop==='Không'?'<span class="bl bl-cht">✗</span>':'<span style="color:#ccc">—</span>';
     return'<tr><td style="color:var(--tx3);font-size:11px">'+((hsP-1)*PZ+i+1)+'</td><td><span class="bl bl-lop">'+s.lop+'</span></td><td class="tdn">'+s.ten+'<small>'+s.ma+'</small></td><td style="font-size:11px">'+s.ns+'</td><td><span class="bl '+(s.gt==='Nam'?'bl-nam':'bl-nu')+'">'+s.gt+'</span></td><td class="c">'+kqL(kq)+'</td><td class="c">'+ll+'</td><td class="c">'+(isDone(s)?'<span class="bl bl-ok">✓</span>':'<span class="bl bl-no">Chưa</span>')+'</td><td class="c">'+abtn+'</td></tr>';
@@ -1229,7 +1276,7 @@ function _shortName(n){return{
   'Tiếng dân tộc':'TDT'
 }[n]||n.substring(0,6);}
 
-function dK(k,el){curK=k;document.querySelectorAll('#diem-kts .kt').forEach(function(t){t.classList.remove('on');});if(el)el.classList.add('on');bldLop('d-lop',String(k));dFil();}
+function dK(k,el){curK=k;document.querySelectorAll('#diem-kts .kt').forEach(function(t){t.classList.remove('on');});if(el)el.classList.add('on');myBldLop('d-lop',String(k));dFil();}
 function dFil(){
   var lop=T('d-lop').value,q=T('d-q').value.toLowerCase(),nt=T('d-nt').value;
   dF=allS.filter(function(s){if(s.khoi!==curK)return false;if(lop&&s.lop!==lop)return false;if(nt==='done'&&!isDone(s))return false;if(nt==='todo'&&isDone(s))return false;if(q&&s.ten.toLowerCase().indexOf(q)<0)return false;return true;});
@@ -1343,7 +1390,7 @@ function dlMauExcel(){
   if(!lop){toast('\u26a0\ufe0f Chọn lớp cụ thể','warn');return;}
   var k=parseInt(lop);
   var sj=_visibleSubj(k);
-  var hsLop=SB.filter(function(s){return s.lop===lop;});
+  var hsLop=mySB().filter(function(s){return s.lop===lop;});
   if(!hsLop.length){toast('\u26a0\ufe0f Không có HS','warn');return;}
 
   // NL đặc thù per khối (K3+ thêm Công nghệ, Tin học)
@@ -1633,7 +1680,7 @@ function _parseDiemExcel(raw,lop){
     var ma=String(row[iMa]||'').trim();
     if(!ma)return;
 
-    var hs=SB.find(function(s){return s.ma===ma;});
+    var hs=mySB().find(function(s){return s.ma===ma;});
     if(!hs){skipped++;return;}
     if(hs.lop!==lop){skipped++;return;}
 
@@ -1777,7 +1824,7 @@ function dlMauGV(){
   // Gom tất cả HS từ tất cả lớp
   var allHS=[];
   allLops.forEach(function(lop){
-    SB.filter(function(s){return s.lop===lop;}).forEach(function(s){allHS.push(s);});
+    mySB().filter(function(s){return s.lop===lop;}).forEach(function(s){allHS.push(s);});
   });
 
   // Tạo cột: STT, Lớp, Mã HS, Họ tên, rồi từng môn (ĐG + Điểm nếu có)
@@ -1982,7 +2029,7 @@ function _parseDiemGV(raw,subjMap){
   dataRows.forEach(function(row,ri){
     var ma=String(row[iMa]||'').trim();
     if(!ma)return;
-    var hs=SB.find(function(s){return s.ma===ma;});
+    var hs=mySB().find(function(s){return s.ma===ma;});
     if(!hs){skipped++;return;}
 
     // Kiểm tra quyền: GV bộ môn cần có phân công cho lớp, GVCN được nhập lớp mình
@@ -2080,7 +2127,7 @@ function showCSDLPicker(){
   h+='<p style="font-size:12px;color:var(--slate3)">Kỳ: <strong style="color:'+period.color+'">'+period.name+'</strong> — Chọn khối lớp để xuất</p></div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:400px;margin:0 auto">';
   [1,2,3,4,5].forEach(function(k){
-    var count=SB.filter(function(s){return s.khoi===k;}).length;
+    var count=mySB().filter(function(s){return s.khoi===k;}).length;
     var colors=['','#2563eb','#059669','#d97706','#7c3aed','#e11d48'];
     h+='<div onclick="_expCSDLKhoi('+k+');cm(&quot;csdlBg&quot;)" style="cursor:pointer;padding:16px;border-radius:12px;border:2px solid #e2e8f0;text-align:center;transition:all .2s;background:white" onmouseover="this.style.borderColor=&quot;'+colors[k]+'&quot;;this.style.background=&quot;#f8fafc&quot;" onmouseout="this.style.borderColor=&quot;#e2e8f0&quot;;this.style.background=&quot;white&quot;">';
     h+='<div style="font-size:24px;font-weight:800;color:'+colors[k]+'">Lớp '+k+'</div>';
@@ -2123,7 +2170,7 @@ function expCSDL(){
 function _expCSDLKhoi(khoi){
   var sj=_csdlSubjects(khoi);
   var nlDT=_csdlNLDacThu(khoi);
-  var hsKhoi=SB.filter(function(s){return s.khoi===khoi;});
+  var hsKhoi=mySB().filter(function(s){return s.khoi===khoi;});
   if(!hsKhoi.length)return;
 
   var r1=[],r2=[],r3=[];
@@ -2238,7 +2285,7 @@ function _expCSDLKhoi(khoi){
 
 // MODAL: NHẬP ĐIỂM
 function openM(idx){
-  eIdx=idx;var s=SB[idx],k=String(s.khoi),sj=SUBJ[k]||SUBJ['1'],g=grades[s.ma]||{};
+  eIdx=idx;var s=SB[idx];if(!s||!canAccessStudent(s)){toast('🔒 Không có quyền truy cập HS này','err');return;}var k=String(s.khoi),sj=SUBJ[k]||SUBJ['1'],g=grades[s.ma]||{};
   if(!canE(s.lop)){toast('🔒 Không có quyền','err');return;}
   T('mTitle').textContent='✏️ '+s.ten;T('mSub').textContent='Lớp '+s.lop+' · '+s.ns;
   T('mStat').textContent=isDone(s)?'✅ Đã có':'⏳ Chưa nhập';
@@ -2359,7 +2406,7 @@ function renderSt(){
     html+='<div style="margin-bottom:15px"><div style="font-size:13px;font-weight:700;color:var(--p);background:var(--pl);padding:5px 11px;border-radius:var(--r8);display:inline-block;margin-bottom:6px">Khối '+k+'</div><div class="sgw"><table class="sgt"><thead><tr><th>Lớp</th>';
     sj.forEach(function(s){html+='<th>'+s+'</th>';});html+='<th>Tiến độ</th></tr></thead><tbody>';
     ['A','B','C','D','E'].forEach(function(c){
-      var lop=k+c,hs=SB.filter(function(s){return s.lop===lop;}),tot=hs.length;
+      var lop=k+c,hs=mySB().filter(function(s){return s.lop===lop;}),tot=hs.length;
       html+='<tr><td style="text-align:left;font-weight:600;background:#fafbfd">'+lop+' ('+tot+')</td>';
       sj.forEach(function(subj){var key=SK[subj];var f=hs.filter(function(s){return(grades[s.ma]||{})[key];}).length;html+=!f?'<td class="sg-no">0</td>':f===tot?'<td class="sg-ok">✓</td>':'<td class="sg-pt">'+f+'/'+tot+'</td>';});
       var d=hs.filter(isDone).length,p=tot?Math.round(d/tot*100):0;
@@ -2446,7 +2493,7 @@ function hbFil(){
 }
 
 function openHB(idx){
-  hbIdx=idx;var s=SB[idx],g=grades[s.ma]||{},kq=cTT(s.ma,s.khoi),nx=nhanXet[s.ma]||{};
+  hbIdx=idx;var s=SB[idx];if(!s||!canAccessStudent(s)){toast('🔒 Không có quyền truy cập HS này','err');return;}var g=grades[s.ma]||{},kq=cTT(s.ma,s.khoi),nx=nhanXet[s.ma]||{};
   T('hbTitle').textContent='📋 Học bạ: '+s.ten;
   T('hbSub').textContent='Lớp '+s.lop+' · '+s.ns+' · '+(s.gt||'');
   T('hbStat').textContent=kqText(kq)||'Chưa xác định';
@@ -2771,7 +2818,7 @@ var _newLoginOK=function(){
   if(T('sb-uname'))T('sb-uname').textContent=CU.hoten||CU.username;
   if(T('sb-urole'))T('sb-urole').textContent=CU.role==='admin'?'Quản trị viên':'Giáo viên';
   if(T('sb-avatar'))T('sb-avatar').textContent=(CU.hoten||CU.username).charAt(0).toUpperCase();
-  if(T('sb-tot'))T('sb-tot').textContent=SB.length;
+  if(T('sb-tot'))T('sb-tot').textContent=mySB().length;
 };
 // ═══ MOBILE MENU ═══
 function toggleMobMenu(){
