@@ -47,14 +47,14 @@ button,input,select,textarea{font-family:inherit}
 ::-webkit-scrollbar-thumb:hover{background:var(--slate3)}
 
 /* ═══ LOGIN ═══ */
-#login-screen{position:fixed;inset:0;background:var(--navy);display:flex;align-items:center;justify-content:center;z-index:9999;overflow:hidden}
-#login-screen::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.15),transparent 70%);top:-200px;right:-100px}
-#login-screen::after{content:'';position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(5,150,105,.1),transparent 70%);bottom:-100px;left:-50px}
-.lbox{background:var(--white);border-radius:var(--radius-xl);padding:40px 44px;width:100%;max-width:420px;box-shadow:var(--shadow-xl);position:relative;z-index:1;animation:slideUp .6s ease-out}
+#login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#e0e7ff 0%,#dbeafe 30%,#f0fdf4 70%,#fef3c7 100%);display:flex;align-items:center;justify-content:center;z-index:9999;overflow:hidden}
+#login-screen::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.12),transparent 70%);top:-200px;right:-100px}
+#login-screen::after{content:'';position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(16,185,129,.08),transparent 70%);bottom:-100px;left:-50px}
+.lbox{background:var(--white);border-radius:var(--radius-xl);padding:40px 44px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(30,64,175,.12),0 8px 20px rgba(0,0,0,.06);position:relative;z-index:1;animation:slideUp .6s ease-out}
 @keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
 .lbox-logo{text-align:center;margin-bottom:24px}
 .lbox-logo .icon{width:64px;height:64px;background:linear-gradient(135deg,var(--blue),var(--emerald));border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:12px;box-shadow:0 8px 20px rgba(37,99,235,.3)}
-.lbox h2{font-family:"Playfair Display",serif;font-size:20px;font-weight:700;color:var(--navy);margin-bottom:4px;letter-spacing:-.3px}
+.lbox h2{font-family:"Be Vietnam Pro",sans-serif;font-size:20px;font-weight:800;color:#1e40af;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase}
 .lbox-sub{text-align:center;font-size:12.5px;color:var(--slate3);margin-bottom:24px}
 .lerr{background:var(--rose-l);color:var(--rose);border-radius:var(--radius);padding:10px 14px;font-size:13px;margin-bottom:14px;display:none;border-left:3px solid var(--rose)}
 .lf{margin-bottom:14px}
@@ -71,7 +71,7 @@ button,input,select,textarea{font-family:inherit}
 .app-wrap{display:flex;min-height:100vh}
 
 /* ═══ LEFT SIDEBAR ═══ */
-.sidebar{width:260px;background:linear-gradient(180deg,#1e293b 0%,#0f172a 100%);color:var(--white);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:200;transition:var(--transition)}
+.sidebar{width:260px;background:linear-gradient(180deg,#1e3a5f 0%,#1a2e4a 100%);color:var(--white);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:200;transition:var(--transition)}
 .sb-header{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
 .sb-brand{display:flex;align-items:center;gap:12px}
 .sb-brand-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--blue),var(--emerald));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
@@ -96,7 +96,7 @@ button,input,select,textarea{font-family:inherit}
 .sb-section-title{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--slate4);padding:0 8px;margin-bottom:6px;font-weight:600}
 .sb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:500;color:rgba(255,255,255,.65);transition:var(--transition);margin-bottom:2px;border:1.5px solid transparent}
 .sb-item:hover{background:rgba(255,255,255,.06);color:var(--white)}
-.sb-item.on{background:rgba(37,99,235,.2);color:var(--white);border-color:rgba(37,99,235,.3);font-weight:600}
+.sb-item.on{background:rgba(59,130,246,.25);color:var(--white);border-color:rgba(96,165,250,.4);font-weight:600}
 .sb-item .ico{width:20px;text-align:center;font-size:14px;flex-shrink:0}
 .sb-item .badge{margin-left:auto;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(255,255,255,.12);color:var(--slate4)}
 .sb-item.on .badge{background:rgba(37,99,235,.3);color:var(--blue-l)}
@@ -361,7 +361,7 @@ code{font-family:monospace;font-size:12px;background:var(--slate7);padding:2px 6
     <div class="icon">🏫</div>
     <h2>Trường Tiểu học Diễn Liên</h2>
   </div>
-  <div class="lbox-sub">Hệ thống Quản lý Chất lượng Giáo dục Tiểu học<br>Năm học 2025–2026 · TT27/2020/TT-BGDĐT</div>
+  <div class="lbox-sub">Hệ thống Quản lý Chất lượng Giáo dục Tiểu học<br>Năm học 2025–2026</div>
   <div class="lerr" id="lerr"></div>
   <div class="lf"><label>Tên đăng nhập</label><input type="text" id="lu" placeholder="Nhập tên đăng nhập" autocomplete="username"></div>
   <div class="lf"><label>Mật khẩu</label><input type="password" id="lp" placeholder="Nhập mật khẩu" autocomplete="current-password"></div>
@@ -899,17 +899,18 @@ function initApp(){
 function merge(){allS=SB.map(function(s){return Object.assign({},s,grades[s.ma]||{});});}
 function updateAll(){merge();buildSide();hsFil();dFil();updS();updP();renderSt();renderTK(tkKF);allGrades[curPeriod]=grades;try{localStorage.setItem('_allGrades',JSON.stringify(allGrades));}catch(e){}}
 function updS(){var d=allS.filter(isDone).length;T('c-nhap').textContent=d;T('c-chua').textContent=SB.length-d;T('c-tot').textContent=SB.length;T('c-nam').textContent=SB.filter(function(s){return s.gt==='Nam';}).length;T('c-nu').textContent=SB.filter(function(s){return s.gt==='Nữ';}).length;}
-function updP(){var d=allS.filter(isDone).length,p=Math.round(d/SB.length*100);T('s-prog').textContent=d+'/'+SB.length;T('s-pb').style.width=p+'%';T('s-pct').textContent=p+'%';}
+function updP(){var d=allS.filter(isDone).length,p=SB.length?Math.round(d/SB.length*100):0;if(T('s-prog'))T('s-prog').textContent=d+'/'+SB.length;if(T('s-pb'))T('s-pb').style.width=p+'%';if(T('s-pct'))T('s-pct').textContent=p+'%';if(T('sb-tot'))T('sb-tot').textContent=SB.length;}
 
 // SIDEBAR + NAV
 function buildSide(){
+  var el=T('side-lops');if(!el)return;
   var h='';
   [1,2,3,4,5].forEach(function(k){['A','B','C','D','E'].forEach(function(c){
     var lop=k+c,hs=SB.filter(function(s){return s.lop===lop;}),tot=hs.length,done=hs.filter(isDone).length;
     var cl=done===tot?'ok':done>0?'pt':'no';
     h+='<div class="si" onclick="jumpLop(\''+lop+'\')"><span style="width:15px;text-align:center">📋</span>Lớp '+lop+'<span class="sbdg '+cl+'">'+done+'/'+tot+'</span></div>';
   });});
-  T('side-lops').innerHTML=h;
+  el.innerHTML=h;
 }
 function jumpLop(lop){var k=parseInt(lop);gp('pg-diem');dK(k,document.querySelectorAll('#diem-kts .kt')[k-1]);T('d-lop').value=lop;dFil();}
 function gp(id,el){
