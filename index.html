@@ -554,29 +554,108 @@ body:not(.is-gvbm) .gv-only{display:none!important}
 
 <!-- XUẤT BÁO CÁO (Phase 2 mới) -->
 <div class="page" id="pg-export">
-  <div class="cgrid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
-    <div class="ccard" style="cursor:pointer;border-left:4px solid var(--blue)" onclick="expExcel()">
-      <div class="cc-ico" style="background:var(--blue-xl)">📊</div>
-      <div><div style="font-weight:700;font-size:13px">Kết quả học tập</div><div class="cc-lbl">Xuất Excel danh sách HS + KQGD</div></div>
+  <!-- Header info -->
+  <div style="background:linear-gradient(135deg,var(--blue-xl),#f0fdf4);border:2px solid #93c5fd;border-radius:var(--radius-xl);padding:20px 24px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--blue),var(--emerald));display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📤</div>
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--navy)">Trích xuất dữ liệu</div>
+        <div style="font-size:12px;color:var(--slate3)">Kỳ đánh giá hiện tại: <strong id="exp-period" style="color:var(--blue)">Cuối năm</strong> — Chuyển kỳ ở thanh bên trái</div>
+      </div>
     </div>
-    <div class="ccard" style="cursor:pointer;border-left:4px solid var(--emerald)" onclick="expTKXL()">
-      <div class="cc-ico" style="background:var(--emerald-l)">📈</div>
-      <div><div style="font-weight:700;font-size:13px">Thống kê chất lượng</div><div class="cc-lbl">Xuất Excel thống kê theo lớp</div></div>
-    </div>
-    <div class="ccard" style="cursor:pointer;border-left:4px solid var(--amber)" onclick="expBangCLWord()">
-      <div class="cc-ico" style="background:var(--amber-l)">📄</div>
-      <div><div style="font-weight:700;font-size:13px">Bảng chất lượng</div><div class="cc-lbl">Xuất Word bảng tổng hợp CL</div></div>
-    </div>
-    <div class="ccard" style="cursor:pointer;border-left:4px solid var(--violet)" onclick="gp('pg-hocba')">
-      <div class="cc-ico" style="background:var(--violet-l)">📋</div>
-      <div><div style="font-weight:700;font-size:13px">Học bạ Word</div><div class="cc-lbl">Vào module Học bạ để xuất</div></div>
-    </div>
-    <div class="ccard ao" style="cursor:pointer;border-left:4px solid var(--rose)" onclick="showCSDLPicker()">
-      <div class="cc-ico" style="background:var(--rose-l)">🏛️</div>
-      <div><div style="font-weight:700;font-size:13px">Đồng bộ CSDL ngành</div><div class="cc-lbl">Xuất mẫu CSDL ngành</div></div>
+    <div style="font-size:12px;color:var(--slate2);line-height:1.8">
+      Chọn loại báo cáo bên dưới để xuất. Dữ liệu được tổng hợp từ kỳ đánh giá đang chọn. Mỗi kỳ có dữ liệu riêng biệt.
     </div>
   </div>
-  <div class="ib blue"><strong>💡 Hướng dẫn</strong><p>Chọn loại báo cáo cần xuất. Dữ liệu sẽ được tổng hợp từ kỳ đánh giá hiện tại (<strong id="exp-period">Cuối năm</strong>). Chuyển kỳ đánh giá ở sidebar trái để xuất dữ liệu kỳ khác.</p></div>
+
+  <!-- Section 1: Báo cáo chung -->
+  <div style="margin-bottom:20px">
+    <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+      <span style="width:24px;height:24px;border-radius:6px;background:var(--blue);color:white;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800">1</span>
+      Báo cáo kết quả đánh giá
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+      <div class="ccard" style="cursor:pointer;border-left:4px solid var(--blue);padding:18px 20px" onclick="expExcel()">
+        <div class="cc-ico" style="background:var(--blue-xl);font-size:22px">📊</div>
+        <div>
+          <div style="font-weight:700;font-size:14px;color:var(--navy)">Kết quả học tập</div>
+          <div class="cc-lbl" style="margin-top:4px;line-height:1.6">Xuất danh sách HS kèm KQGD (Hoàn thành xuất sắc, Hoàn thành tốt, Hoàn thành, Chưa HT)</div>
+        </div>
+      </div>
+      <div class="ccard" style="cursor:pointer;border-left:4px solid var(--emerald);padding:18px 20px" onclick="expTKXL()">
+        <div class="cc-ico" style="background:var(--emerald-l);font-size:22px">📈</div>
+        <div>
+          <div style="font-weight:700;font-size:14px;color:var(--navy)">Thống kê chất lượng</div>
+          <div class="cc-lbl" style="margin-top:4px;line-height:1.6">Tổng hợp số liệu theo từng lớp: sĩ số, tỉ lệ HT, khen thưởng, lên lớp</div>
+        </div>
+      </div>
+      <div class="ccard" style="cursor:pointer;border-left:4px solid var(--amber);padding:18px 20px" onclick="expBangCLWord()">
+        <div class="cc-ico" style="background:var(--amber-l);font-size:22px">📄</div>
+        <div>
+          <div style="font-weight:700;font-size:14px;color:var(--navy)">Bảng chất lượng (Word)</div>
+          <div class="cc-lbl" style="margin-top:4px;line-height:1.6">Bảng tổng hợp chất lượng giáo dục toàn trường, in ấn trình ký</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: Học bạ -->
+  <div style="margin-bottom:20px">
+    <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+      <span style="width:24px;height:24px;border-radius:6px;background:var(--violet);color:white;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800">2</span>
+      Học bạ số
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+      <div class="ccard" style="cursor:pointer;border-left:4px solid var(--violet);padding:18px 20px" onclick="gp('pg-hocba')">
+        <div class="cc-ico" style="background:var(--violet-l);font-size:22px">📋</div>
+        <div>
+          <div style="font-weight:700;font-size:14px;color:var(--navy)">Xuất học bạ (Word)</div>
+          <div class="cc-lbl" style="margin-top:4px;line-height:1.6">Vào module Học bạ số để xuất học bạ từng HS hoặc cả lớp theo mẫu TT27</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: CSDL ngành (Admin only) -->
+  <div class="ao" style="margin-bottom:20px">
+    <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+      <span style="width:24px;height:24px;border-radius:6px;background:var(--rose);color:white;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800">3</span>
+      Đồng bộ CSDL ngành
+      <span style="font-size:10px;color:var(--rose);background:var(--rose-l);padding:2px 8px;border-radius:10px;font-weight:600">Admin</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+      <div class="ccard" style="cursor:pointer;border-left:4px solid var(--rose);padding:18px 20px" onclick="showCSDLPicker()">
+        <div class="cc-ico" style="background:var(--rose-l);font-size:22px">🏛️</div>
+        <div>
+          <div style="font-weight:700;font-size:14px;color:var(--navy)">Xuất mẫu CSDL ngành</div>
+          <div class="cc-lbl" style="margin-top:4px;line-height:1.6">Xuất file Excel theo đúng mẫu Sở GD&ĐT, chọn theo từng khối lớp (1→5)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hướng dẫn chi tiết -->
+  <div style="background:var(--white);border:1.5px solid var(--slate6);border-radius:var(--radius-xl);padding:20px 24px">
+    <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px">📖 Hướng dẫn sử dụng</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px;color:var(--slate2);line-height:1.9">
+      <div>
+        <div style="font-weight:600;color:var(--blue);margin-bottom:4px">📊 Kết quả học tập</div>
+        Xuất file Excel chứa danh sách toàn bộ HS kèm kết quả giáo dục (KQGD), trạng thái lên lớp. Phù hợp để lưu trữ, báo cáo nội bộ.
+      </div>
+      <div>
+        <div style="font-weight:600;color:var(--emerald);margin-bottom:4px">📈 Thống kê chất lượng</div>
+        Tổng hợp số liệu theo từng lớp: sĩ số, đã nhập, tỉ lệ HT xuất sắc/tốt/HT/chưa HT, khen thưởng, lên lớp. Dùng cho báo cáo Hiệu trưởng.
+      </div>
+      <div>
+        <div style="font-weight:600;color:var(--amber);margin-bottom:4px">📄 Bảng chất lượng Word</div>
+        File Word bảng tổng hợp toàn trường, có chữ ký Hiệu trưởng + Người lập. In ra trình ký, nộp Phòng GD.
+      </div>
+      <div>
+        <div style="font-weight:600;color:var(--violet);margin-bottom:4px">📋 Học bạ Word</div>
+        Xuất học bạ đúng mẫu TT27 cho từng HS. Vào module "Học bạ số" → chọn lớp → xuất Word hoặc Excel.
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- TÀI KHOẢN -->
