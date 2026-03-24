@@ -1843,6 +1843,9 @@ function openM(idx){
     h+='</div></div>';
   });
   h+='</div></div>';
+  // NL + PC + Lên lớp: CHỈ hiện cho Admin hoặc GVCN (có lop_phu_trach)
+  var canNLPC=!CU||CU.role==='admin'||!!(CU.lop&&CU.lop.trim());
+  if(canNLPC){
   h+='<div class="fsect"><div class="fsect-h"><h3>🧠 Năng lực</h3></div><div class="fgrid fg2">';
   NL.forEach(function(nl){var v=g[nl[1]]||'';
     h+='<div class="frow"><div class="flbl" style="font-size:12px">'+nl[0]+'</div><div class="rg" onchange="onGC('+idx+')">';
@@ -1866,6 +1869,7 @@ function openM(idx){
   h+='<div class="frow"><div class="flbl">HS Tiêu biểu</div><div class="rg" onchange="onGC('+idx+')">';
   h+='<label class="o-xs"><input type="radio" name="r_tb" value="1"'+(tb2==='1'?' checked':'')+'><span>✓ Có</span></label>';
   h+='<label class="o-none"><input type="radio" name="r_tb" value=""'+(!tb2?' checked':'')+'><span>Không</span></label></div></div></div></div>';
+  }// end canNLPC
   T('mBd').innerHTML=h;T('mBg').classList.add('on');
 }
 function vD(inp){var v=inp.value;if(v===''){inp.classList.remove('inv');return;}var n=parseInt(v);if(isNaN(n)||n<0||n>10)inp.classList.add('inv');else{inp.classList.remove('inv');inp.value=String(n);}}
@@ -1873,11 +1877,14 @@ function onGC(idx){var s=SB[idx];if(!s)return;var tmp=colG();grades[s.ma]=Object
 function colG(){
   var s=SB[eIdx];if(!s)return{};var k=String(s.khoi),sj=SUBJ[k]||SUBJ['1'],g=Object.assign({},grades[s.ma]||{});
   sj.forEach(function(mn){var mk=mn[1],dk=mn[2];var r=document.querySelector('input[name="m_'+mk+'"]:checked:not(:disabled)');if(r)g[mk]=r.value;if(dk){var d=T('fd_'+dk);if(d&&!d.disabled&&d.value.trim()!=='')g[dk]=String(parseInt(d.value)||0);}});
-  NL.forEach(function(nl){var r=document.querySelector('input[name="nl_'+nl[1]+'"]:checked');if(r)g[nl[1]]=r.value;});
-  PC.forEach(function(pc){var r=document.querySelector('input[name="pc_'+pc[1]+'"]:checked');if(r)g[pc[1]]=r.value;});
-  var ll=document.querySelector('input[name="r_ll"]:checked');if(ll)g.len_lop=ll.value;
-  var tb=document.querySelector('input[name="r_tb"]:checked');if(tb)g._tieubieu=tb.value;
-  var kq=cTT(s.ma,s.khoi);if(kq){g.hoan_thanh=kq==='CHT'?'CHT':'HT';g.kqgd=kq;}
+  var canNLPC=!CU||CU.role==='admin'||!!(CU.lop&&CU.lop.trim());
+  if(canNLPC){
+    NL.forEach(function(nl){var r=document.querySelector('input[name="nl_'+nl[1]+'"]:checked');if(r)g[nl[1]]=r.value;});
+    PC.forEach(function(pc){var r=document.querySelector('input[name="pc_'+pc[1]+'"]:checked');if(r)g[pc[1]]=r.value;});
+    var ll=document.querySelector('input[name="r_ll"]:checked');if(ll)g.len_lop=ll.value;
+    var tb=document.querySelector('input[name="r_tb"]:checked');if(tb)g._tieubieu=tb.value;
+    var kq=cTT(s.ma,s.khoi);if(kq){g.hoan_thanh=kq==='CHT'?'CHT':'HT';g.kqgd=kq;}
+  }
   return g;
 }
 function cm(id){T(id).classList.remove('on');if(id==='mBg')eIdx=null;if(id==='hbBg')hbIdx=null;}
