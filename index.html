@@ -1053,18 +1053,22 @@ function _parseDiemExcel(raw,lop){
   var k=parseInt(lop);
   var cols=_mauCols(k);
 
-  // Tìm header row
+  // Tìm header row: dòng có ô riêng "STT" + "Mã HS" (ngắn, không phải câu dài)
   var headerRow=-1;
   for(var ri=0;ri<Math.min(raw.length,10);ri++){
-    var rowA=raw[ri].map(function(c){return _ascii(c);}).join('|');
-    if((rowA.indexOf('stt')>=0||rowA.indexOf('ma hs')>=0)&&(rowA.indexOf('ho va ten')>=0||rowA.indexOf('ma hs')>=0)){headerRow=ri;break;}
+    var cells=raw[ri].map(function(c){return _ascii(c);});
+    var hasStt=cells.some(function(c){return c==='stt';});
+    var hasMa=cells.some(function(c){return c==='ma hs'||c==='ma';});
+    var hasHo=cells.some(function(c){return c.indexOf('ho va ten')>=0||c==='ho va ten';});
+    var shortCells=cells.filter(function(c){return c.length>0&&c.length<35;}).length;
+    if(hasStt&&(hasMa||hasHo)&&shortCells>=4){headerRow=ri;break;}
   }
   if(headerRow<0){
     for(var ri=0;ri<Math.min(raw.length,8);ri++){
-      var textCells=raw[ri].filter(function(c){return String(c).trim()&&isNaN(c);}).length;
+      var shortText=raw[ri].filter(function(c){var s=String(c).trim();return s.length>0&&s.length<35&&isNaN(s);}).length;
       var hasNum=false;
       for(var di=ri+1;di<Math.min(raw.length,ri+4);di++){if(raw[di]&&raw[di].some(function(c){return/^\d{5,}$/.test(String(c).trim());})){hasNum=true;break;}}
-      if(textCells>=4&&hasNum){headerRow=ri;break;}
+      if(shortText>=6&&hasNum){headerRow=ri;break;}
     }
   }
   if(headerRow<0){toast('\u274c Khong tim thay dong tieu de','err');return;}
@@ -1353,21 +1357,28 @@ function onDiemFileGV(inp){
 }
 
 function _parseDiemGV(raw,subjMap){
-  // Strip diacritics for robust matching (avoid Vietnamese Unicode issues)
+  // Strip diacritics for robust matching
   function _ascii(s){return String(s||'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\u0111\u0110]/g,'d').toLowerCase();}
 
-  // Tìm header row
+  // Tìm header row: dòng có CÁC Ô RIÊNG LẺ match "STT", "Ma HS", "Ho va ten" (không phải 1 câu dài)
   var headerRow=-1;
   for(var ri=0;ri<Math.min(raw.length,10);ri++){
-    var rowA=raw[ri].map(function(c){return _ascii(c);}).join('|');
-    if((rowA.indexOf('stt')>=0||rowA.indexOf('ma hs')>=0)&&(rowA.indexOf('ho va ten')>=0||rowA.indexOf('ho ten')>=0||rowA.indexOf('ma hs')>=0)){headerRow=ri;break;}
+    var cells=raw[ri].map(function(c){return _ascii(c);});
+    // Header row = dòng có ô riêng "stt" VÀ ô riêng chứa "ma" hoặc "ho"
+    var hasStt=cells.some(function(c){return c==='stt';});
+    var hasMa=cells.some(function(c){return c==='ma hs'||c==='ma';});
+    var hasHo=cells.some(function(c){return c.indexOf('ho va ten')>=0||c.indexOf('ho ten')>=0||c==='ho va ten';});
+    // Mỗi ô phải ngắn (< 30 ký tự) → loại dòng hướng dẫn dài
+    var shortCells=cells.filter(function(c){return c.length>0&&c.length<35;}).length;
+    if(hasStt&&(hasMa||hasHo)&&shortCells>=4){headerRow=ri;break;}
   }
   if(headerRow<0){
+    // Fallback: tìm dòng có nhiều ô text ngắn (>=6) + dòng sau có số dài
     for(var ri=0;ri<Math.min(raw.length,8);ri++){
-      var textCells=raw[ri].filter(function(c){return String(c).trim()&&isNaN(c);}).length;
+      var shortText=raw[ri].filter(function(c){var s=String(c).trim();return s.length>0&&s.length<35&&isNaN(s);}).length;
       var hasNum=false;
       for(var di=ri+1;di<Math.min(raw.length,ri+4);di++){if(raw[di]&&raw[di].some(function(c){return/^\d{5,}$/.test(String(c).trim());})){hasNum=true;break;}}
-      if(textCells>=4&&hasNum){headerRow=ri;break;}
+      if(shortText>=6&&hasNum){headerRow=ri;break;}
     }
   }
   if(headerRow<0){toast('\u274c Khong tim thay dong tieu de','err');return;}
