@@ -6,7 +6,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Quản lý Chất lượng GDTH v5.1</title>
+<title>Quản lý Chất lượng GDTH v6.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Lexend:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -585,9 +585,20 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
 
     <!-- Cảnh báo bảo mật -->
     <div class="ib warn">
-      <strong>🔒 Lưu ý bảo mật</strong>
+      <strong>🔒 Lưu ý bảo mật & cài đặt</strong>
       <p>GAS URL được nhúng sẵn trong hệ thống — <strong>không cần sửa</strong> trừ khi deploy lại GAS.<br>
-      Khi cần cập nhật GAS URL mới: sửa trực tiếp trong file <code>index.html</code> trên GitHub, tìm dòng <code>var DEFAULT_GAS = 'https://script.google.com/macros/s/AKfycbzRwMuvC_nHrk2znUtnjKSxm7Tl_YQJwIDjTFbQT7-enJx3G0tWoYMLZ2uKGx0fo95H/exec'</code> và thay URL mới vào.</p>
+      Khi cần cập nhật GAS URL mới: sửa trực tiếp trong file <code>index.html</code> trên GitHub, tìm dòng <code>var DEFAULT_GAS = '...'</code> và thay URL mới vào.</p>
+    </div>
+    <div class="ib green">
+      <strong>📋 Hướng dẫn deploy Code.gs v6 (hỗ trợ POST — khắc phục lỗi lưu dữ liệu)</strong>
+      <ol>
+        <li>Mở <strong>Google Apps Script</strong> → Xóa toàn bộ code cũ trong <code>Code.gs</code></li>
+        <li>Dán code mới (file <code>Code.gs</code> đi kèm) → <strong>Lưu</strong></li>
+        <li>Nhấn <strong>Deploy → New deployment</strong> → Chọn <strong>Web app</strong></li>
+        <li>Execute as: <strong>Me</strong> · Who has access: <strong>Anyone</strong></li>
+        <li>Nhấn <strong>Deploy</strong> → Copy URL mới → Dán vào <code>DEFAULT_GAS</code> trong index.html</li>
+        <li><strong>⚠️ Quan trọng:</strong> Mỗi lần sửa code, phải chọn <strong>New deployment</strong> (không phải Manage deployments)</li>
+      </ol>
     </div>
 
     <!-- Ẩn input gas-url và ss-id (vẫn cần cho JS nhưng ẩn khỏi UI) -->
@@ -880,12 +891,52 @@ function gasCall(p){
     return r.json();
   });
 }
+
+// ══════════════════════════════════════════════════════════
+//  gasPost — GỬI DỮ LIỆU BẰNG POST THỰC SỰ
+//  ✅ Content-Type: text/plain → tránh CORS preflight
+//  ✅ Không giới hạn kích thước URL (GET chỉ cho ~2000 ký tự)
+//  ✅ Tự động fallback sang GET nếu POST thất bại
+// ══════════════════════════════════════════════════════════
 function gasPost(d){
   if(!GAS) return Promise.reject(new Error('GAS chưa cấu hình'));
-  var url=GAS+'?gaspost=1&d='+encodeURIComponent(JSON.stringify(d));
-  return fetch(url,{method:'GET',redirect:'follow'}).then(function(r){
+  var body=JSON.stringify(d);
+  // ── Bước 1: Thử POST (không giới hạn dung lượng) ──
+  return fetch(GAS,{
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:body,
+    redirect:'follow'
+  }).then(function(r){
+    // GAS trả về redirect 302 → fetch tự follow → nhận JSON
     if(!r.ok) throw new Error('HTTP '+r.status);
-    return r.json();
+    return r.text();
+  }).then(function(txt){
+    // GAS đôi khi trả về text có BOM hoặc whitespace thừa
+    txt=(txt||'').trim();
+    if(!txt) throw new Error('Empty response');
+    try{return JSON.parse(txt);}
+    catch(e){
+      // Nếu response không phải JSON (có thể HTML error page)
+      if(txt.indexOf('<!DOCTYPE')>=0||txt.indexOf('<html')>=0)
+        throw new Error('GAS trả về trang lỗi HTML — kiểm tra lại GAS URL hoặc deploy lại');
+      throw new Error('Phản hồi không hợp lệ: '+txt.substring(0,120));
+    }
+  }).catch(function(postErr){
+    // ── Bước 2: Fallback sang GET nếu POST bị CORS block ──
+    // Chỉ fallback cho payload nhỏ (<6000 chars khi URL-encoded)
+    var encoded=encodeURIComponent(body);
+    if(encoded.length>6000){
+      // Payload quá lớn cho GET — không fallback, báo lỗi rõ ràng
+      throw new Error('Dữ liệu quá lớn ('+Math.round(encoded.length/1024)+'KB) và POST bị chặn. '+
+        'Hãy deploy lại Code.gs (xem hướng dẫn bên dưới). Chi tiết: '+postErr.message);
+    }
+    console.warn('[gasPost] POST thất bại, fallback sang GET:', postErr.message);
+    var url=GAS+'?gaspost=1&d='+encoded;
+    return fetch(url,{method:'GET',redirect:'follow'}).then(function(r){
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.json();
+    });
   });
 }
 
@@ -1389,52 +1440,47 @@ function saveCld(){
   if(eIdx===null) return;
   if(document.querySelectorAll('.diemw input.inv').length){toast('❌ Điểm không hợp lệ','err');return;}
   var s=SB[eIdx],g=colG();
-  // Thêm timestamp để track phiên bản mới nhất
   g.updated_at=new Date().toLocaleString('vi-VN');
   g.updated_by=CU?CU.username:'?';
   grades[s.ma]=g;
+  // Luôn lưu local backup TRƯỚC (phòng mất mạng)
+  try{localStorage.setItem('_grades',JSON.stringify(grades));}catch(e){}
   cm('mBg');updateAll();
-  // Luôn lưu lên Sheets TRƯỚC
   if(!GAS){
-    // Không có GAS - lưu tạm local và cảnh báo
-    try{localStorage.setItem('_grades',JSON.stringify(grades));}catch(e){}
     toast('⚠️ Chưa có GAS URL - dữ liệu chỉ lưu TẠM trên máy này!','warn');
     return;
   }
   loader('Đang lưu lên Google Sheets...');
-  gasPost({action:'saveGrade',ma:s.ma,grades:g,user:CU?CU.username:'?'})
-    .then(function(r){
-      loader();
-      if(r.ok){
-        try{localStorage.setItem('_grades',JSON.stringify(grades));}catch(e){}
-        toast('☁️ Đã lưu lên Google Sheets: '+s.ten,'ok');
-      } else {
-        var errMsg = r.error||'';
-        if(errMsg.indexOf('cột')>=0||errMsg.indexOf('column')>=0||errMsg.indexOf('tối thiểu')>=0){
-          // Lỗi cấu trúc sheet → tự fix rồi lưu lại
-          toast('🔧 Đang sửa cấu trúc Sheets, chờ...','warn');
-          gasPost({action:'fixDiemSheet'}).then(function(fr){
-            loader('Đang lưu lại...');
-            gasPost({action:'saveGrade',ma:s.ma,grades:g,user:CU?CU.username:'?'})
-              .then(function(r2){
-                loader();
-                if(r2.ok){
-                  try{localStorage.setItem('_grades',JSON.stringify(grades));}catch(e){}
-                  toast('☁️ Đã sửa và lưu thành công: '+s.ten,'ok');
-                } else {
-                  toast('❌ Vẫn lỗi: '+r2.error,'err');
-                }
-              }).catch(function(){loader();toast('❌ Lỗi kết nối','err');});
-          });
+  function doSave(retryCount){
+    gasPost({action:'saveGrade',ma:s.ma,grades:g,user:CU?CU.username:'?'})
+      .then(function(r){
+        loader();
+        if(r.ok){
+          toast('☁️ Đã lưu lên Google Sheets: '+s.ten,'ok');
         } else {
-          toast('❌ Lỗi lưu Sheets: '+errMsg,'err');
+          var errMsg = r.error||'';
+          if(errMsg.indexOf('cột')>=0||errMsg.indexOf('column')>=0||errMsg.indexOf('tối thiểu')>=0){
+            toast('🔧 Đang sửa cấu trúc Sheets, chờ...','warn');
+            gasPost({action:'fixDiemSheet'}).then(function(){
+              loader('Đang lưu lại...');
+              doSave(0); // Thử lại sau khi fix
+            }).catch(function(){loader();toast('❌ Không sửa được cấu trúc','err');});
+          } else {
+            toast('❌ Lỗi lưu Sheets: '+errMsg,'err');
+          }
         }
-      }
-    })
-    .catch(function(e){
-      loader();
-      toast('❌ Mất kết nối - Dữ liệu chưa được lưu lên Sheets!','err');
-    });
+      })
+      .catch(function(e){
+        if(retryCount<2){
+          console.warn('Save retry #'+(retryCount+1)+' for '+s.ma);
+          setTimeout(function(){doSave(retryCount+1);},1500);
+        } else {
+          loader();
+          toast('⚠️ Lưu local OK nhưng chưa lên Sheets — nhấn 🔄 để đồng bộ sau','warn');
+        }
+      });
+  }
+  doSave(0);
 }
 function saveAllLop(){
   var lop=T('d-lop').value;
@@ -1442,10 +1488,30 @@ function saveAllLop(){
   if(!GAS){toast('⚠️ Chưa có GAS URL','warn');return;}
   var batch=dF.filter(function(s){return grades[s.ma]&&canE(s.lop);}).map(function(s){return {ma:s.ma,grades:grades[s.ma]};});
   if(!batch.length){toast('ℹ️ Không có điểm để lưu','warn');return;}
+  // Chia nhỏ batch — mỗi lần gửi tối đa 10 HS để tránh lỗi payload
+  var CHUNK=10, i=0, ok=0, fail=0;
   loader('Đang lưu '+batch.length+' HS...');
-  gasPost({action:'saveGrades',grades_batch:batch,user:CU?CU.username:'?'})
-    .then(function(r){loader();r.ok?toast('☁️ '+r.message,'ok'):toast('❌ '+r.error,'err');})
-    .catch(function(e){loader();toast('❌ '+e.message,'err');});
+  function nextChunk(){
+    if(i>=batch.length){
+      loader();
+      if(fail===0) toast('☁️ Đã lưu thành công '+ok+' HS lên Google Sheets!','ok');
+      else toast('⚠️ Lưu xong '+ok+'/'+batch.length+' HS ('+fail+' lỗi)','warn');
+      return;
+    }
+    var chunk=batch.slice(i,i+CHUNK);
+    T('ldr-t').textContent='Đang lưu '+Math.min(i+CHUNK,batch.length)+'/'+batch.length+' HS...';
+    gasPost({action:'saveGrades',grades_batch:chunk,user:CU?CU.username:'?'})
+      .then(function(r){
+        if(r.ok) ok+=chunk.length; else fail+=chunk.length;
+        i+=CHUNK; nextChunk();
+      })
+      .catch(function(e){
+        console.error('Chunk save error:', e);
+        fail+=chunk.length;
+        i+=CHUNK; nextChunk();
+      });
+  }
+  nextChunk();
 }
 
 // ═══ PAGE TRẠNG THÁI ═══
@@ -1606,11 +1672,12 @@ function confirmImport(){
   toast('✅ Đã cập nhật '+importData.length+' học sinh','ok');
   if(GAS){
     loader('Đang upload lên Sheets...');
-    var chunks=[],i=0;
+    var CHUNK=50,i=0;
     function next(){
       if(i>=importData.length){loader();toast('☁️ Upload xong '+importData.length+' học sinh!','ok');return;}
-      T('ldr-t').textContent='Upload '+Math.min(i+100,importData.length)+'/'+importData.length+'...';
-      gasPost({action:'saveStudentsBatch',batch:importData.slice(i,i+100)}).then(function(){i+=100;next();}).catch(function(e){loader();toast('⚠️ Sheets lỗi: '+e.message,'warn');});
+      var end=Math.min(i+CHUNK,importData.length);
+      T('ldr-t').textContent='Upload '+end+'/'+importData.length+'...';
+      gasPost({action:'saveStudentsBatch',batch:importData.slice(i,end)}).then(function(){i=end;next();}).catch(function(e){loader();toast('⚠️ Sheets lỗi: '+e.message,'warn');});
     }
     next();
   }
@@ -1882,11 +1949,23 @@ function upStudents(){
   if(!GAS){toast('⚠️ Chưa có GAS URL','warn');return;}
   if(!confirm('Upload '+SB.length+' học sinh?')) return;
   loader('Đang upload...');
-  var i=0;
+  var CHUNK=50, i=0, failCount=0;
   function next(){
-    if(i>=SB.length){loader();toast('☁️ Upload xong!','ok');return;}
-    T('ldr-t').textContent='Upload '+Math.min(i+100,SB.length)+'/'+SB.length+'...';
-    gasPost({action:'saveStudentsBatch',batch:SB.slice(i,i+100)}).then(function(){i+=100;next();}).catch(function(e){loader();toast('❌ '+e.message,'err');});
+    if(i>=SB.length){
+      loader();
+      if(failCount===0) toast('☁️ Upload xong '+SB.length+' học sinh!','ok');
+      else toast('⚠️ Upload xong nhưng có '+failCount+' lỗi','warn');
+      return;
+    }
+    var end=Math.min(i+CHUNK,SB.length);
+    T('ldr-t').textContent='Upload '+end+'/'+SB.length+'...';
+    gasPost({action:'saveStudentsBatch',batch:SB.slice(i,end)})
+      .then(function(){i=end;next();})
+      .catch(function(e){
+        console.error('Upload chunk error at '+i+':', e);
+        failCount++;
+        i=end;next(); // Tiếp tục dù lỗi
+      });
   }
   next();
 }
