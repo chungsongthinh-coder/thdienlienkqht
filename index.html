@@ -75,7 +75,7 @@ button,input,select,textarea{font-family:inherit}
 .sb-header{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.12)}
 .sb-brand{display:flex;align-items:center;gap:12px}
 .sb-brand-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--blue),var(--emerald));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.sb-brand h1{font-family:"Playfair Display",serif;font-size:14px;font-weight:700;line-height:1.3}
+.sb-brand h1{font-family:"Be Vietnam Pro",sans-serif;font-size:14px;font-weight:700;line-height:1.3}
 .sb-brand p{font-size:10px;color:var(--slate4);margin-top:2px}
 
 /* Period selector in sidebar */
@@ -113,7 +113,7 @@ button,input,select,textarea{font-family:inherit}
 
 /* Top bar */
 .topbar2{background:var(--white);border-bottom:1px solid var(--slate6);padding:0 28px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm)}
-.topbar2-title{font-size:16px;font-weight:700;color:var(--navy);font-family:"Playfair Display",serif}
+.topbar2-title{font-size:16px;font-weight:700;color:var(--navy);font-family:"Be Vietnam Pro",sans-serif}
 .topbar2-period{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;margin-left:8px}
 .topbar2-right{margin-left:auto;display:flex;align-items:center;gap:12px}
 .sync-badge{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;transition:var(--transition);border:1.5px solid var(--slate6);color:var(--slate2)}
@@ -383,7 +383,7 @@ body:not(.is-gvbm) .gv-only{display:none!important}
       <div class="sb-brand-icon">🏫</div>
       <div>
         <h1>TH Diễn Liên</h1>
-        <p>QLCL GDTH · v2.5</p>
+        <p>QLCL GDTH · v3.0</p>
       </div>
     </div>
   </div>
@@ -571,6 +571,10 @@ body:not(.is-gvbm) .gv-only{display:none!important}
       <div class="cc-ico" style="background:var(--violet-l)">📋</div>
       <div><div style="font-weight:700;font-size:13px">Học bạ Word</div><div class="cc-lbl">Vào module Học bạ để xuất</div></div>
     </div>
+    <div class="ccard ao" style="cursor:pointer;border-left:4px solid var(--rose)" onclick="expCSDL()">
+      <div class="cc-ico" style="background:var(--rose-l)">🏛️</div>
+      <div><div style="font-weight:700;font-size:13px">Đồng bộ CSDL ngành</div><div class="cc-lbl">Xuất 5 file theo mẫu Sở GD&ĐT</div></div>
+    </div>
   </div>
   <div class="ib blue"><strong>💡 Hướng dẫn</strong><p>Chọn loại báo cáo cần xuất. Dữ liệu sẽ được tổng hợp từ kỳ đánh giá hiện tại (<strong id="exp-period">Cuối năm</strong>). Chuyển kỳ đánh giá ở sidebar trái để xuất dữ liệu kỳ khác.</p></div>
 </div>
@@ -705,7 +709,7 @@ body:not(.is-gvbm) .gv-only{display:none!important}
 // ┌──────────────────────────────────────────────────────────┐
 // │  CẤU HÌNH — V2.0                                        │
 // └──────────────────────────────────────────────────────────┘
-var APP_VERSION='2.5';
+var APP_VERSION='3.0';
 var DEFAULT_GAS = 'https://script.google.com/macros/s/AKfycbwY01v2kKGvXIzBd0CSSeTvA428sb9-D3-o_1NdBNsl9YZQhSAjTfxSQ1yawFF-9O3m/exec';
 
 var SB   = JSON.parse(document.getElementById('_d_sb').textContent);
@@ -1815,6 +1819,159 @@ function _parseDiemGV(raw,subjMap){
     console.warn('Lỗi nhập Excel GV:');
     errors.forEach(function(e){console.warn('  '+e);});
   }
+}
+
+
+// ┌──────────────────────────────────────────────────────────┐
+// │  ĐỒNG BỘ CSDL NGÀNH — XUẤT 5 FILE THEO KHỐI            │
+// └──────────────────────────────────────────────────────────┘
+
+function _csdlSubjects(k){
+  // TẤT CẢ môn (bao gồm Tiếng dân tộc) theo đúng thứ tự mẫu CSDL ngành
+  var sj=SUBJ[String(k)]||SUBJ['1'];
+  return sj; // Không ẩn Tiếng dân tộc cho CSDL
+}
+
+function _csdlNLDacThu(k){
+  var base=NL.slice(NL_CHUNG_IDX).map(function(x){return{name:x[0],key:x[1]};});
+  if(k>=3){
+    // K3+: thêm Công nghệ, Tin học vào NL đặc thù
+    var insertAt=3;
+    base.splice(insertAt,0,{name:'Công nghệ',key:'nl_Cong_nghe'},{name:'Tin học',key:'nl_Tin_hoc'});
+  }
+  return base;
+}
+
+function expCSDL(){
+  if(curPeriod!=='cn'){
+    if(!confirm('Mẫu CSDL ngành thường dùng cho kỳ Cuối năm. Bạn đang ở kỳ "'+PERIODS.find(function(p){return p.id===curPeriod;}).name+'". Tiếp tục?'))return;
+  }
+  loader('Đang xuất 5 file CSDL ngành...');
+  var delay=0;
+  [1,2,3,4,5].forEach(function(khoi){
+    setTimeout(function(){
+      T('ldr-t').textContent='Xuất Lớp '+khoi+'...';
+      _expCSDLKhoi(khoi);
+      if(khoi===5){loader();toast('🏛️ Đã xuất 5 file CSDL ngành!','ok');}
+    },delay);
+    delay+=600;
+  });
+}
+
+function _expCSDLKhoi(khoi){
+  var sj=_csdlSubjects(khoi);
+  var nlDT=_csdlNLDacThu(khoi);
+  var hsKhoi=SB.filter(function(s){return s.khoi===khoi;});
+  if(!hsKhoi.length)return;
+
+  var r1=[],r2=[],r3=[];
+  var merges=[];
+  var ci=0;
+
+  // Fixed cols
+  var maLabel=khoi>=3?'Mã định danh\nBộ GD&ĐT':'Mã học sinh';
+  ['STT','Mã lớp',maLabel,'Họ tên','Ngày sinh'].forEach(function(h){
+    r1.push(h);r2.push('');r3.push('');
+    merges.push({s:{r:0,c:ci},e:{r:2,c:ci}});
+    ci++;
+  });
+
+  // Môn học
+  var monStart=ci;
+  sj.forEach(function(mn){
+    var hd=mn[2]&&mn[3]; // Cuối năm luôn có điểm theo SUBJ
+    if(hd){
+      r1.push('');r1.push('');
+      r2.push(mn[0]);r2.push('');
+      merges.push({s:{r:1,c:ci},e:{r:1,c:ci+1}});
+      r3.push('Mức đạt được');r3.push('Điểm KTĐK');
+      ci+=2;
+    }else{
+      r1.push('');
+      r2.push(mn[0]);
+      merges.push({s:{r:1,c:ci},e:{r:2,c:ci}});
+      r3.push('Mức đạt được');
+      ci++;
+    }
+  });
+  var monEnd=ci-1;
+  r1[monStart]='Môn học và hoạt động giáo dục';
+  merges.push({s:{r:0,c:monStart},e:{r:0,c:monEnd}});
+
+  // NL
+  var nlStart=ci;
+  var nlcStart=ci;
+  NL.slice(0,NL_CHUNG_IDX).forEach(function(nl){
+    r1.push('');r2.push('');r3.push(nl[0]);ci++;
+  });
+  var nlcEnd=ci-1;
+  r2[nlcStart]='Năng lực chung';
+  merges.push({s:{r:1,c:nlcStart},e:{r:1,c:nlcEnd}});
+
+  var nldStart=ci;
+  nlDT.forEach(function(nl){
+    r1.push('');r2.push('');r3.push(nl.name);ci++;
+  });
+  var nldEnd=ci-1;
+  r2[nldStart]='Năng lực đặc thù';
+  merges.push({s:{r:1,c:nldStart},e:{r:1,c:nldEnd}});
+  r1[nlStart]='Năng lực cốt lõi';
+  merges.push({s:{r:0,c:nlStart},e:{r:0,c:nldEnd}});
+
+  // PC
+  var pcStart=ci;
+  PC.forEach(function(pc){
+    r1.push('');r2.push(pc[0]);r3.push('');
+    merges.push({s:{r:1,c:ci},e:{r:2,c:ci}});
+    ci++;
+  });
+  var pcEnd=ci-1;
+  r1[pcStart]='Phẩm chất chủ yếu';
+  merges.push({s:{r:0,c:pcStart},e:{r:0,c:pcEnd}});
+
+  // Tail
+  [{h:'Hoàn thành\nchương trình lớp học'},{h:'Lên lớp'},{h:'Xếp loại'}].forEach(function(c){
+    r1.push(c.h);r2.push('');r3.push('');
+    merges.push({s:{r:0,c:ci},e:{r:2,c:ci}});
+    ci++;
+  });
+
+  // Data
+  var stt=0;
+  var dataRows=hsKhoi.map(function(s){
+    stt++;
+    var g=grades[s.ma]||{};
+    var row=[stt,s.lop,s.ma,s.ten,s.ns];
+    sj.forEach(function(mn){
+      var mv=g[mn[1]]||'';
+      row.push(mv?_storeToDisplay(mv,'mon'):'');
+      if(mn[2]&&mn[3]) row.push(g[mn[2]]||'');
+    });
+    NL.slice(0,NL_CHUNG_IDX).forEach(function(nl){
+      var v=g[nl[1]]||'';row.push(v?_storeToDisplay(v,'nlpc'):'');
+    });
+    nlDT.forEach(function(nl){
+      var v=g[nl.key]||'';row.push(v?_storeToDisplay(v,'nlpc'):'');
+    });
+    PC.forEach(function(pc){
+      var v=g[pc[1]]||'';row.push(v?_storeToDisplay(v,'nlpc'):'');
+    });
+    var kq=cTT(s.ma,s.khoi);
+    row.push(kq?kqText(kq):'');
+    row.push(g.len_lop==='Có'?'x':'');
+    row.push(kq||'');
+    return row;
+  });
+
+  var aoa=[r1,r2,r3].concat(dataRows);
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!merges']=merges;
+  var cw=[];for(var w=0;w<ci;w++)cw.push({wch:w<2?5:w===2?16:w===3?22:w===4?12:8});
+  ws['!cols']=cw;
+
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Lop_'+khoi);
+  XLSX.writeFile(wb,'CSDL_Nganh_Lop'+khoi+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
 // MODAL: NHẬP ĐIỂM
