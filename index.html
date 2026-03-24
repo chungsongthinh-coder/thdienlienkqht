@@ -392,11 +392,19 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
     <button class="btn bp" onclick="saveAllLop()">☁️ Lưu lớp lên Sheets</button>
     <span class="rc" id="d-rc"></span>
   </div>
-  <div class="tb" style="margin-bottom:6px">
-    <button class="btn bout" onclick="dlMauExcel()">📥 Tải mẫu Excel</button>
+  <!-- Admin: nhập theo lớp -->
+  <div class="tb ao" style="margin-bottom:6px" id="d-import-admin">
+    <button class="btn bout" onclick="dlMauExcel()">📥 Tải mẫu Excel (lớp)</button>
     <button class="btn bg" onclick="T('d-file-inp').click()">📤 Nhập từ Excel</button>
     <input type="file" id="d-file-inp" accept=".xlsx,.xls,.csv" style="display:none" onchange="onDiemFile(this)">
     <span id="d-import-info" style="font-size:11px;color:var(--tx3)"></span>
+  </div>
+  <!-- GV bộ môn: nhập theo phân công -->
+  <div class="tb gv-only" style="margin-bottom:6px;display:none" id="d-import-gv">
+    <button class="btn bpur" onclick="dlMauGV()">📥 Tải mẫu theo phân công</button>
+    <button class="btn bg" onclick="T('d-file-gv').click()">📤 Nhập kết quả từ Excel</button>
+    <input type="file" id="d-file-gv" accept=".xlsx,.xls,.csv" style="display:none" onchange="onDiemFileGV(this)">
+    <span id="d-gv-info" style="font-size:11px;color:var(--tx3)"></span>
   </div>
   <div class="tw"><div class="ts" id="d-table-wrap">
     <table><thead id="d-thead"><tr><th>Lớp</th><th>Họ tên</th><th class="c">Đang tải...</th></tr></thead>
@@ -671,6 +679,11 @@ function loginOK(){
   localStorage.setItem('_cu',JSON.stringify(CU));
   var isA=CU.role==='admin';
   document.querySelectorAll('.ao').forEach(function(el){el.style.display=isA?'':'none';});
+  // GV bộ môn: hiện toolbar nhập theo phân công
+  var isGV=!isA&&userPerm&&Object.keys(userPerm).length>0;
+  document.querySelectorAll('.gv-only').forEach(function(el){el.style.display=isGV?'':'none';});
+  // Admin cũng hiện import admin toolbar
+  if(T('d-import-admin'))T('d-import-admin').style.display=isA?'':'none';
   T('user-pill').innerHTML='👤 '+(CU.hoten||CU.username)+(isA?' <span class="bl" style="background:var(--rl);color:var(--r);font-size:10px">Admin</span>':' <span class="bl" style="background:var(--gl);color:var(--gd);font-size:10px">GV</span>');
   initApp();
 }
@@ -1145,6 +1158,287 @@ function _parseDiemExcel(raw,lop){
   }
 }
 
+// ┌──────────────────────────────────────────────────────────┐
+// │  GV BỘ MÔN — TẢI MẪU & NHẬP THEO PHÂN CÔNG            │
+// └──────────────────────────────────────────────────────────┘
+
+function _getGVSubjects(){
+  // Lấy danh sách môn + lớp GV được phân công
+  if(!userPerm||!Object.keys(userPerm).length)return null;
+  // Gom: {subjectKey: [lop1, lop2,...]}
+  var subjMap={};
+  Object.keys(userPerm).forEach(function(lop){
+    userPerm[lop].forEach(function(key){
+      if(!subjMap[key])subjMap[key]=[];
+      if(subjMap[key].indexOf(lop)<0)subjMap[key].push(lop);
+    });
+  });
+  return subjMap;
+}
+
+function _subjKeyToName(key){
+  var map={
+    'mon_Toán':'Toán','mon_Tiếng_việt':'Tiếng Việt','mon_Đạo_đức':'Đạo đức',
+    'mon_Tự_nhiên_và_xã_hội':'TN&XH','mon_Ngoại_ngữ':'Ngoại ngữ',
+    'mon_TH-CN_Tin_học':'Tin học','mon_Nghệ_thuật_Âm_nhạc':'Âm nhạc',
+    'mon_Nghệ_thuật_Mĩ_thuật':'Mĩ thuật','mon_Hoạt_động_trải_nghiệm':'HĐTN',
+    'mon_Giáo_dục_thể_chất':'Thể chất','mon_Khoa_học':'Khoa học',
+    'mon_Lịch_sử_và_Địa_lí':'LS-ĐL','mon_TH-CN_Công_nghệ':'Công nghệ',
+    'nl_Tự_chủ_và_tự_học':'NL: Tự chủ tự học','nl_Giao_tiếp_và_hợp_tác':'NL: Giao tiếp HT',
+    'nl_Giải_quyết_vấn_đề_và_sáng_tạo':'NL: GQVĐ&ST','nl_Ngôn_ngữ':'NL: Ngôn ngữ',
+    'nl_Tính_toán':'NL: Tính toán','nl_Khoa_học':'NL: Khoa học',
+    'nl_Thẩm_mĩ':'NL: Thẩm mĩ','nl_Thể_chất':'NL: Thể chất',
+    'pc_Yêu_nước':'PC: Yêu nước','pc_Nhân_ái':'PC: Nhân ái',
+    'pc_Chăm_chỉ':'PC: Chăm chỉ','pc_Trung_thực':'PC: Trung thực','pc_Trách_nhiệm':'PC: Trách nhiệm'
+  };
+  return map[key]||key;
+}
+
+function _subjHasDiem(key,khoi){
+  // Kiểm tra môn này có cột điểm không (dựa trên SUBJ data)
+  var sj=SUBJ[String(khoi)]||SUBJ['1'];
+  for(var i=0;i<sj.length;i++){
+    if(sj[i][1]===key)return sj[i][2]&&sj[i][3];
+  }
+  return false;
+}
+
+function _subjDiemKey(monKey,khoi){
+  var sj=SUBJ[String(khoi)]||SUBJ['1'];
+  for(var i=0;i<sj.length;i++){
+    if(sj[i][1]===monKey&&sj[i][2]&&sj[i][3])return sj[i][2];
+  }
+  return null;
+}
+
+function dlMauGV(){
+  var subjMap=_getGVSubjects();
+  if(!subjMap){toast('⚠️ Không có phân công giảng dạy','warn');return;}
+
+  var allLops=[];
+  Object.keys(subjMap).forEach(function(key){
+    subjMap[key].forEach(function(lop){
+      if(allLops.indexOf(lop)<0)allLops.push(lop);
+    });
+  });
+  allLops.sort();
+
+  if(!allLops.length){toast('⚠️ Không có lớp nào','warn');return;}
+
+  // Gom tất cả HS từ tất cả lớp
+  var allHS=[];
+  allLops.forEach(function(lop){
+    SB.filter(function(s){return s.lop===lop;}).forEach(function(s){allHS.push(s);});
+  });
+
+  // Tạo cột: STT, Lớp, Mã HS, Họ tên, rồi từng môn (ĐG + Điểm nếu có)
+  var subjKeys=Object.keys(subjMap);
+  var cols=[
+    {h:'STT',key:'_stt',w:5},
+    {h:'Lớp',key:'_lop',w:6},
+    {h:'Mã HS',key:'_ma',w:14},
+    {h:'Họ và tên',key:'_ten',w:25}
+  ];
+
+  subjKeys.forEach(function(skey){
+    var name=_subjKeyToName(skey);
+    if(skey.indexOf('mon_')===0){
+      cols.push({h:name+' (ĐG)',key:skey,w:12,note:'HTT / HT / CHT',type:'mon'});
+      // Kiểm tra nếu bất kỳ khối nào có điểm cho môn này
+      var anyDiem=false;
+      allLops.forEach(function(lop){var k=parseInt(lop);if(_subjHasDiem(skey,k))anyDiem=true;});
+      if(anyDiem) cols.push({h:name+' (Điểm)',key:'diem_'+skey.replace('mon_',''),w:10,note:'0-10',type:'diem',monKey:skey});
+    }else{
+      cols.push({h:name,key:skey,w:14,note:skey.indexOf('nl_')===0||skey.indexOf('pc_')===0?'T / Đ / CCG':'',type:'nlpc'});
+    }
+  });
+
+  // Dòng tiêu đề
+  var title=['MẪU NHẬP KẾT QUẢ — '+(CU.hoten||CU.username)+' — '+CU.phan_cong];
+  for(var i=1;i<cols.length;i++)title.push('');
+
+  var guide=['Nhập đánh giá môn (HTT/HT/CHT), điểm (0-10), NL/PC (T/Đ/CCG). Không sửa STT, Lớp, Mã HS.'];
+  for(var i=1;i<cols.length;i++)guide.push('');
+
+  var headers=cols.map(function(c){return c.h;});
+  var notes=cols.map(function(c){return c.note||'';});
+
+  var rows=allHS.map(function(s,idx){
+    var g=grades[s.ma]||{};
+    return cols.map(function(c){
+      if(c.key==='_stt')return idx+1;
+      if(c.key==='_lop')return s.lop;
+      if(c.key==='_ma')return s.ma;
+      if(c.key==='_ten')return s.ten;
+      if(c.type==='diem'){
+        // Lấy điểm key tương ứng khối
+        var dk=_subjDiemKey(c.monKey,s.khoi);
+        return dk?g[dk]||'':'';
+      }
+      return g[c.key]||'';
+    });
+  });
+
+  var aoa=[title,guide,headers,notes].concat(rows);
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=cols.map(function(c){return{wch:c.w};});
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:cols.length-1}},{s:{r:1,c:0},e:{r:1,c:cols.length-1}}];
+
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'KetQua');
+
+  // Sheet hướng dẫn
+  var hd=[
+    ['HƯỚNG DẪN NHẬP KẾT QUẢ — GIÁO VIÊN BỘ MÔN'],[''],
+    ['Phân công: '+CU.phan_cong],[''],
+    ['Lớp phụ trách: '+allLops.join(', ')],
+    ['Tổng số HS: '+allHS.length],[''],
+    ['CÁCH NHẬP:'],
+    ['- Cột ĐG (đánh giá): HTT = Hoàn thành tốt, HT = Hoàn thành, CHT = Chưa HT'],
+    ['- Cột Điểm: số từ 0 đến 10 (chỉ có ở một số môn/khối)'],
+    ['- Cột NL/PC: T = Tốt, Đ = Đạt, CCG = Chưa đạt'],[''],
+    ['LƯU Ý:'],
+    ['- KHÔNG sửa cột STT, Lớp, Mã HS'],
+    ['- Có thể để trống ô chưa có kết quả'],
+    ['- Lưu file → Vào hệ thống → Nhấn "📤 Nhập kết quả từ Excel"'],
+    ['- Sau đó nhấn "☁️ Lưu lớp lên Sheets" để đồng bộ']
+  ];
+  var ws2=XLSX.utils.aoa_to_sheet(hd);
+  ws2['!cols']=[{wch:65}];
+  XLSX.utils.book_append_sheet(wb,ws2,'HuongDan');
+
+  XLSX.writeFile(wb,'NhapDiem_'+(CU.hoten||CU.username).replace(/\s/g,'_')+'.xlsx');
+  toast('📥 Tải mẫu '+allHS.length+' HS ('+allLops.length+' lớp)','ok');
+}
+
+function onDiemFileGV(inp){
+  if(!inp.files.length)return;
+  var subjMap=_getGVSubjects();
+  if(!subjMap){toast('⚠️ Không có phân công','warn');inp.value='';return;}
+  var file=inp.files[0];
+  if(file.size>5*1024*1024){toast('❌ File quá lớn','err');inp.value='';return;}
+  loader('Đọc file...');
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      loader();
+      var wb=XLSX.read(e.target.result,{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      _parseDiemGV(raw,subjMap);
+    }catch(err){loader();toast('❌ '+err.message,'err');}
+  };
+  reader.readAsArrayBuffer(file);
+  inp.value='';
+}
+
+function _parseDiemGV(raw,subjMap){
+  // Tìm header row
+  var headerRow=-1;
+  for(var ri=0;ri<Math.min(raw.length,10);ri++){
+    var rowStr=raw[ri].join('|').toLowerCase();
+    if(rowStr.indexOf('mã hs')>=0||rowStr.indexOf('họ và tên')>=0){headerRow=ri;break;}
+  }
+  if(headerRow<0){toast('❌ Không tìm thấy dòng tiêu đề','err');return;}
+
+  var headers=raw[headerRow].map(function(h){return String(h).trim();});
+
+  // Tìm index cột Mã HS, Lớp
+  var iMa=-1,iLop=-1;
+  headers.forEach(function(h,i){
+    if(h==='Mã HS')iMa=i;
+    if(h==='Lớp')iLop=i;
+  });
+  if(iMa<0){toast('❌ Không tìm thấy cột Mã HS','err');return;}
+
+  // Map header → key (chỉ cho môn GV được phân công)
+  var subjKeys=Object.keys(subjMap);
+  var colMapping={}; // colIndex -> {key, type}
+
+  headers.forEach(function(h,ci){
+    if(ci===iMa||ci===iLop)return;
+    // Tìm match
+    subjKeys.forEach(function(skey){
+      var name=_subjKeyToName(skey);
+      if(skey.indexOf('mon_')===0){
+        if(h===name+' (ĐG)')colMapping[ci]={key:skey,type:'mon'};
+        if(h===name+' (Điểm)')colMapping[ci]={key:skey,type:'diem'};
+      }else{
+        if(h===name)colMapping[ci]={key:skey,type:'nlpc'};
+      }
+    });
+  });
+
+  // Parse data
+  var dataRows=raw.slice(headerRow+1);
+  // Bỏ notes row
+  if(dataRows.length>0){
+    var firstMa=String(dataRows[0][iMa]||'').trim();
+    if(!firstMa||/^[^0-9]/.test(firstMa)&&firstMa.length<5)dataRows=dataRows.slice(1);
+  }
+
+  var updated=0,skipped=0,errors=[];
+
+  dataRows.forEach(function(row,ri){
+    var ma=String(row[iMa]||'').trim();
+    if(!ma)return;
+    var hs=SB.find(function(s){return s.ma===ma;});
+    if(!hs){skipped++;return;}
+
+    // Kiểm tra GV có quyền với lớp này
+    if(!userPerm[hs.lop]){skipped++;return;}
+
+    var g=Object.assign({},grades[ma]||{});
+    var hasData=false;
+
+    Object.keys(colMapping).forEach(function(ci){
+      var col=colMapping[ci];
+      var val=String(row[parseInt(ci)]||'').trim();
+      if(!val)return;
+
+      if(col.type==='mon'){
+        var upper=val.toUpperCase();
+        if(upper==='HTT'||upper==='HT'||upper==='CHT'){g[col.key]=upper;hasData=true;}
+        else errors.push('Dòng '+(ri+1)+': "'+val+'" ≠ HTT/HT/CHT');
+      }else if(col.type==='diem'){
+        var dk=_subjDiemKey(col.key,hs.khoi);
+        if(dk){
+          var num=parseInt(val);
+          if(!isNaN(num)&&num>=0&&num<=10){g[dk]=String(num);hasData=true;}
+          else errors.push('Dòng '+(ri+1)+': Điểm "'+val+'" ≠ 0-10');
+        }
+      }else if(col.type==='nlpc'){
+        if(val==='T'||val==='Đ'||val==='CCG'){g[col.key]=val;hasData=true;}
+        else errors.push('Dòng '+(ri+1)+': "'+val+'" ≠ T/Đ/CCG');
+      }
+    });
+
+    if(hasData){
+      g.updated_at=new Date().toLocaleString('vi-VN');
+      g.updated_by=CU?CU.username:'gv';
+      grades[ma]=g;
+      updated++;
+    }
+  });
+
+  try{localStorage.setItem('_grades',JSON.stringify(grades));}catch(e){}
+  merge();updateAll();
+
+  var msg='✅ Nhập xong: '+updated+' HS cập nhật';
+  if(skipped)msg+=', '+skipped+' bỏ qua';
+  toast(msg,errors.length?'warn':'ok');
+
+  T('d-gv-info').innerHTML='<span style="color:var(--g)">'+updated+' HS đã nhập</span>'
+    +(skipped?' · <span style="color:var(--o)">'+skipped+' bỏ qua</span>':'')
+    +(errors.length?' · <span style="color:var(--r)">'+errors.length+' lỗi</span>':'')
+    +' — <b>Nhấn "☁️ Lưu lớp lên Sheets"</b>';
+
+  if(errors.length>0&&errors.length<=15){
+    console.warn('Lỗi nhập Excel GV:');
+    errors.forEach(function(e){console.warn('  '+e);});
+  }
+}
+
 // MODAL: NHẬP ĐIỂM
 function openM(idx){
   eIdx=idx;var s=SB[idx],k=String(s.khoi),sj=SUBJ[k]||SUBJ['1'],g=grades[s.ma]||{};
@@ -1231,9 +1525,18 @@ function saveCld(){
   }doSave(0);
 }
 function saveAllLop(){
-  var lop=T('d-lop').value;if(!lop){toast('⚠️ Chọn lớp','warn');return;}if(!GAS){toast('⚠️ Chưa có GAS','warn');return;}
-  var batch=dF.filter(function(s){return grades[s.ma]&&canE(s.lop);}).map(function(s){return{ma:s.ma,grades:grades[s.ma]};});
-  if(!batch.length){toast('ℹ️ Không có điểm','warn');return;}
+  if(!GAS){toast('⚠️ Chưa có GAS','warn');return;}
+  var lop=T('d-lop').value;
+  var batch;
+  if(lop){
+    // Lưu theo lớp đã chọn
+    batch=dF.filter(function(s){return grades[s.ma]&&canE(s.lop);}).map(function(s){return{ma:s.ma,grades:grades[s.ma]};});
+  }else{
+    // GV: lưu tất cả HS có quyền (sau khi nhập Excel)
+    batch=allS.filter(function(s){return grades[s.ma]&&canE(s.lop);}).map(function(s){return{ma:s.ma,grades:grades[s.ma]};});
+  }
+  if(!batch.length){toast('ℹ️ Không có điểm để lưu','warn');return;}
+  if(batch.length>50&&!confirm('Lưu '+batch.length+' HS lên Sheets?'))return;
   var CHUNK=10,i=0,ok=0,fail=0;loader('Đang lưu '+batch.length+' HS...');
   function next(){
     if(i>=batch.length){loader();toast(fail?'⚠️ '+ok+'/'+(ok+fail)+' HS':'☁️ Lưu '+ok+' HS!',fail?'warn':'ok');return;}
