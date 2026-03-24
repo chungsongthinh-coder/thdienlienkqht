@@ -1049,53 +1049,59 @@ function onDiemFile(inp){
 }
 
 function _parseDiemExcel(raw,lop){
-  function _norm(s){return String(s||'').trim().normalize('NFC');}
+  function _ascii(s){return String(s||'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\u0111\u0110]/g,'d').toLowerCase();}
   var k=parseInt(lop);
   var cols=_mauCols(k);
 
-  // Tìm dòng header
+  // Tìm header row
   var headerRow=-1;
   for(var ri=0;ri<Math.min(raw.length,10);ri++){
-    var rowStr=_norm(raw[ri].join('|')).toLowerCase();
-    if(rowStr.indexOf(_norm('mã hs').toLowerCase())>=0||rowStr.indexOf('ma hs')>=0||rowStr.indexOf(_norm('họ và tên').toLowerCase())>=0||rowStr.indexOf('stt')>=0&&rowStr.indexOf('ten')>=0){
-      headerRow=ri;break;
+    var rowA=raw[ri].map(function(c){return _ascii(c);}).join('|');
+    if((rowA.indexOf('stt')>=0||rowA.indexOf('ma hs')>=0)&&(rowA.indexOf('ho va ten')>=0||rowA.indexOf('ma hs')>=0)){headerRow=ri;break;}
+  }
+  if(headerRow<0){
+    for(var ri=0;ri<Math.min(raw.length,8);ri++){
+      var textCells=raw[ri].filter(function(c){return String(c).trim()&&isNaN(c);}).length;
+      var hasNum=false;
+      for(var di=ri+1;di<Math.min(raw.length,ri+4);di++){if(raw[di]&&raw[di].some(function(c){return/^\d{5,}$/.test(String(c).trim());})){hasNum=true;break;}}
+      if(textCells>=4&&hasNum){headerRow=ri;break;}
     }
   }
-  if(headerRow<0){toast('❌ Không tìm thấy dòng tiêu đề','err');return;}
+  if(headerRow<0){toast('\u274c Khong tim thay dong tieu de','err');return;}
 
-  var headers=raw[headerRow].map(function(h){return _norm(h);});
+  var headers=raw[headerRow].map(function(h){return String(h||'').trim();});
+  var headersA=headers.map(function(h){return _ascii(h);});
 
-  // Map header to col keys - normalized matching
+  // Map header to col keys using ASCII
   var colMap={};
   cols.forEach(function(c){
-    var ch=_norm(c.h);
-    for(var ci=0;ci<headers.length;ci++){
-      if(headers[ci]===ch){colMap[c.key]=ci;break;}
+    var ca=_ascii(c.h);
+    for(var ci=0;ci<headersA.length;ci++){
+      if(headersA[ci]===ca){colMap[c.key]=ci;break;}
     }
   });
-
-  // Fallback: tìm Mã HS bằng cột có số dài
+  // Fallback for Mã HS
   if(colMap['_ma']===undefined){
-    headers.forEach(function(h,i){
-      var hl=h.toLowerCase();
-      if(hl.indexOf('ma')>=0&&hl.indexOf('hs')>=0)colMap['_ma']=i;
-    });
+    headersA.forEach(function(h,i){if(h.indexOf('ma')>=0&&h.indexOf('hs')>=0)colMap['_ma']=i;});
   }
   if(colMap['_ma']===undefined){
-    for(var fi=0;fi<headers.length;fi++){
-      var testRow=raw[headerRow+1]||raw[headerRow+2];
-      if(testRow&&/^\d{8,}$/.test(String(testRow[fi]||'').trim())){colMap['_ma']=fi;break;}
+    for(var di=headerRow+1;di<Math.min(raw.length,headerRow+5);di++){
+      if(!raw[di])continue;
+      for(var fi=0;fi<raw[di].length;fi++){
+        if(/^\d{8,}$/.test(String(raw[di][fi]||'').trim())){colMap['_ma']=fi;break;}
+      }
+      if(colMap['_ma']!==undefined)break;
     }
   }
-  if(colMap['_ma']===undefined){toast('❌ Không tìm thấy cột Mã HS','err');return;}
+  if(colMap['_ma']===undefined){toast('\u274c Khong tim thay cot Ma HS','err');return;}
+  console.log('Admin Parse - headerRow:'+headerRow+' cols:'+Object.keys(colMap).length);
 
   var dataRows=raw.slice(headerRow+1);
-  // Bỏ dòng ghi chú nếu có (dòng đầu sau header có thể là notes)
-  if(dataRows.length>0){
-    var firstMa=String(dataRows[0][colMap['_ma']]||'').trim();
-    if(!firstMa||firstMa.toLowerCase().indexOf('htt')>=0||firstMa.toLowerCase().indexOf('htc')>=0||/^[^0-9]/.test(firstMa)&&firstMa.length<5){
-      dataRows=dataRows.slice(1);
-    }
+  // Skip notes rows until we find a row with a valid MA HS
+  while(dataRows.length>0){
+    var testMa=String(dataRows[0][colMap['_ma']]||'').trim();
+    if(/^\d{5,}$/.test(testMa))break;
+    dataRows=dataRows.slice(1);
   }
 
   var updated=0,skipped=0,errors=[];
@@ -1347,59 +1353,71 @@ function onDiemFileGV(inp){
 }
 
 function _parseDiemGV(raw,subjMap){
-  // Normalize helper - fix Vietnamese Unicode issues
-  function _norm(s){return String(s||'').trim().normalize('NFC');}
+  // Strip diacritics for robust matching (avoid Vietnamese Unicode issues)
+  function _ascii(s){return String(s||'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\u0111\u0110]/g,'d').toLowerCase();}
+
   // Tìm header row
   var headerRow=-1;
   for(var ri=0;ri<Math.min(raw.length,10);ri++){
-    var rowStr=_norm(raw[ri].join('|')).toLowerCase();
-    if(rowStr.indexOf(_norm('mã hs').toLowerCase())>=0||rowStr.indexOf(_norm('họ và tên').toLowerCase())>=0||rowStr.indexOf('ma hs')>=0||rowStr.indexOf('stt')>=0&&rowStr.indexOf('ten')>=0){headerRow=ri;break;}
+    var rowA=raw[ri].map(function(c){return _ascii(c);}).join('|');
+    if((rowA.indexOf('stt')>=0||rowA.indexOf('ma hs')>=0)&&(rowA.indexOf('ho va ten')>=0||rowA.indexOf('ho ten')>=0||rowA.indexOf('ma hs')>=0)){headerRow=ri;break;}
   }
-  if(headerRow<0){toast('❌ Không tìm thấy dòng tiêu đề','err');return;}
-
-  var headers=raw[headerRow].map(function(h){return _norm(h);});
-
-  // Tìm index cột Mã HS, Lớp - flexible matching
-  var iMa=-1,iLop=-1;
-  headers.forEach(function(h,i){
-    var hl=h.toLowerCase();
-    if(iMa<0&&(hl===_norm('Mã HS').toLowerCase()||hl==='ma hs'||hl===_norm('mã hs')||hl.indexOf('ma')>=0&&hl.indexOf('hs')>=0))iMa=i;
-    if(iLop<0&&(hl===_norm('Lớp').toLowerCase()||hl==='lop'||hl===_norm('lớp')))iLop=i;
-  });
-  if(iMa<0){
-    // Fallback: tìm cột có dữ liệu giống mã HS (chuỗi số dài)
-    for(var fi=0;fi<headers.length;fi++){
-      var testRow=raw[headerRow+1]||raw[headerRow+2];
-      if(testRow&&/^\d{8,}$/.test(String(testRow[fi]||'').trim())){iMa=fi;break;}
+  if(headerRow<0){
+    for(var ri=0;ri<Math.min(raw.length,8);ri++){
+      var textCells=raw[ri].filter(function(c){return String(c).trim()&&isNaN(c);}).length;
+      var hasNum=false;
+      for(var di=ri+1;di<Math.min(raw.length,ri+4);di++){if(raw[di]&&raw[di].some(function(c){return/^\d{5,}$/.test(String(c).trim());})){hasNum=true;break;}}
+      if(textCells>=4&&hasNum){headerRow=ri;break;}
     }
   }
-  if(iMa<0){toast('❌ Không tìm thấy cột Mã HS. Kiểm tra file mẫu.','err');return;}
+  if(headerRow<0){toast('\u274c Khong tim thay dong tieu de','err');return;}
 
-  // Map header → key (chỉ cho môn GV được phân công)
+  var headers=raw[headerRow].map(function(h){return String(h||'').trim();});
+  var headersA=headers.map(function(h){return _ascii(h);});
+
+  // Tìm cột bằng ASCII match
+  var iMa=-1,iLop=-1,iTen=-1;
+  headersA.forEach(function(h,i){
+    if(iMa<0&&(h==='ma hs'||h.indexOf('ma')>=0&&h.indexOf('hs')>=0))iMa=i;
+    if(iLop<0&&h==='lop')iLop=i;
+    if(iTen<0&&(h.indexOf('ho va ten')>=0||h.indexOf('ho ten')>=0))iTen=i;
+  });
+  // Fallback: tìm cột chứa số dài trong data rows
+  if(iMa<0){
+    for(var di=headerRow+1;di<Math.min(raw.length,headerRow+5);di++){
+      if(!raw[di])continue;
+      for(var fi=0;fi<raw[di].length;fi++){
+        if(/^\d{8,}$/.test(String(raw[di][fi]||'').trim())){iMa=fi;break;}
+      }
+      if(iMa>=0)break;
+    }
+  }
+  if(iMa<0){toast('\u274c Khong tim thay cot Ma HS','err');return;}
+
+  // Map header -> subject key bằng ASCII
   var subjKeys=Object.keys(subjMap);
-  var colMapping={}; // colIndex -> {key, type}
-
+  var colMapping={};
   headers.forEach(function(h,ci){
-    if(ci===iMa||ci===iLop)return;
-    var hn=_norm(h);
-    // Tìm match
+    if(ci===iMa||ci===iLop||ci===iTen||headersA[ci]==='stt')return;
+    var ha=_ascii(h);
     subjKeys.forEach(function(skey){
-      var name=_norm(_subjKeyToName(skey));
+      var nameA=_ascii(_subjKeyToName(skey));
       if(skey.indexOf('mon_')===0){
-        if(hn===name+' (ĐG)'||hn===name+' (DG)')colMapping[ci]={key:skey,type:'mon'};
-        if(hn===name+' (Điểm)'||hn===name+' (Diem)')colMapping[ci]={key:skey,type:'diem'};
+        if(ha===nameA+' (dg)'||ha.indexOf(nameA)===0&&ha.indexOf('(dg)')>0)colMapping[ci]={key:skey,type:'mon'};
+        if(ha===nameA+' (diem)'||ha.indexOf(nameA)===0&&ha.indexOf('(diem)')>0)colMapping[ci]={key:skey,type:'diem'};
       }else{
-        if(hn===name)colMapping[ci]={key:skey,type:'nlpc'};
+        if(ha===nameA||ha.indexOf(nameA)===0&&ha.length-nameA.length<5)colMapping[ci]={key:skey,type:'nlpc'};
       }
     });
   });
+  console.log('GV Parse - headerRow:'+headerRow+' iMa:'+iMa+' cols:'+Object.keys(colMapping).length);
 
-  // Parse data
+  // Skip notes rows - find first row where Mã HS column has a long number
   var dataRows=raw.slice(headerRow+1);
-  // Bỏ notes row
-  if(dataRows.length>0){
-    var firstMa=String(dataRows[0][iMa]||'').trim();
-    if(!firstMa||/^[^0-9]/.test(firstMa)&&firstMa.length<5)dataRows=dataRows.slice(1);
+  while(dataRows.length>0){
+    var testMa=String(dataRows[0][iMa]||'').trim();
+    if(/^\d{5,}$/.test(testMa))break;
+    dataRows=dataRows.slice(1);
   }
 
   var updated=0,skipped=0,errors=[];
