@@ -564,11 +564,12 @@ body:not(.is-admin) .ao .cc-lbl::after{content:' (Chỉ Admin)';color:var(--rose
     <select id="hs-gt" onchange="hsFil()"><option value="">Giới tính</option><option>Nam</option><option>Nữ</option></select>
     <select id="hs-nt" onchange="hsFil()"><option value="">Trạng thái</option><option value="done">Đã nhập</option><option value="todo">Chưa nhập</option></select>
     <button class="btn bout" onclick="hsRst()">↺</button>
+    <button class="btn bp ao" onclick="openAddHS()">➕ Thêm HS</button>
     <button class="btn bg" onclick="if(needAdmin())expExcel()">⬇ Excel</button>
     <span class="rc" id="hs-rc"></span>
   </div>
   <div class="tw"><div class="ts">
-    <table><thead><tr><th>#</th><th>Lớp</th><th>Họ và tên</th><th>Ngày sinh</th><th>GT</th><th class="c">KQGD</th><th class="c">Lên lớp</th><th class="c">Trạng thái</th><th class="c">Nhập</th></tr></thead>
+    <table><thead><tr><th>#</th><th>Lớp</th><th>Họ và tên</th><th>Ngày sinh</th><th>GT</th><th class="c">KQGD</th><th class="c">Lên lớp</th><th class="c">Trạng thái</th><th class="c">Nhập</th><th class="c ao" style="width:40px">Xóa</th></tr></thead>
     <tbody id="hs-tb"></tbody></table>
   </div><div class="pagi"><span class="pagi-info" id="hs-pi"></span><div class="pagi-btns" id="hs-pb"></div></div></div>
 </div>
@@ -897,6 +898,27 @@ body:not(.is-admin) .ao .cc-lbl::after{content:' (Chỉ Admin)';color:var(--rose
 <div class="mbox sm">
   <div class="mhd" style="background:linear-gradient(135deg,#991b1b,#e11d48)"><div><h2>🏛️ CSDL ngành</h2></div><button class="mcl" onclick="cm('csdlBg')">✕</button></div>
   <div class="mbd" id="csdlBd"></div>
+</div>
+</div>
+
+
+<!-- Thêm HS Modal -->
+<div class="mbg" id="addHSBg">
+<div class="mbox sm">
+  <div class="mhd" style="background:linear-gradient(135deg,#1e40af,#3b82f6)"><div><h2>➕ Thêm học sinh mới</h2><p>Học sinh chuyển đến</p></div><button class="mcl" onclick="cm('addHSBg')">✕</button></div>
+  <div class="mbd">
+    <div class="uf">
+      <div class="ufi uf-full"><label>Họ và tên *</label><input type="text" id="ahs-ten" placeholder="Nguyễn Văn A"></div>
+      <div class="ufi"><label>Mã HS / Mã định danh</label><input type="text" id="ahs-ma" placeholder="Tự tạo nếu để trống"></div>
+      <div class="ufi"><label>Ngày sinh *</label><input type="text" id="ahs-ns" placeholder="01/01/2019"></div>
+      <div class="ufi"><label>Lớp *</label><select id="ahs-lop"><option value="">Chọn lớp</option></select></div>
+      <div class="ufi"><label>Giới tính *</label><select id="ahs-gt"><option value="">Chọn</option><option>Nam</option><option>Nữ</option></select></div>
+    </div>
+  </div>
+  <div class="mft">
+    <div class="mft-l" id="ahsErr" style="color:var(--rose);font-size:12px"></div>
+    <div class="mft-r"><button class="btn bout" onclick="cm('addHSBg')">Hủy</button><button class="btn bp" onclick="saveNewHS()">💾 Thêm</button></div>
+  </div>
 </div>
 </div>
 
@@ -1253,7 +1275,8 @@ function renderHS(){
     if(!canAccessStudent(s)){return '';}
     var abtn=canE(s.lop)?'<button class="abtn ae" onclick="openM('+gi+')">✏️</button>':'<button class="abtn alck">🔒</button>';
     var ll=g.len_lop==='Có'?'<span class="bl bl-ht">✓</span>':g.len_lop==='Không'?'<span class="bl bl-cht">✗</span>':'<span style="color:#ccc">—</span>';
-    return'<tr><td style="color:var(--tx3);font-size:11px">'+((hsP-1)*PZ+i+1)+'</td><td><span class="bl bl-lop">'+s.lop+'</span></td><td class="tdn">'+s.ten+'<small>'+s.ma+'</small></td><td style="font-size:11px">'+s.ns+'</td><td><span class="bl '+(s.gt==='Nam'?'bl-nam':'bl-nu')+'">'+s.gt+'</span></td><td class="c">'+kqL(kq)+'</td><td class="c">'+ll+'</td><td class="c">'+(isDone(s)?'<span class="bl bl-ok">✓</span>':'<span class="bl bl-no">Chưa</span>')+'</td><td class="c">'+abtn+'</td></tr>';
+    var delBtn=CU&&CU.role==='admin'?'<td class="c"><button class="abtn ad" onclick="deleteHS(\''+s.ma+'\',\''+s.ten.replace(/'/g,'')+'\')">🗑</button></td>':'<td class="c ao"></td>';
+    return'<tr><td style="color:var(--tx3);font-size:11px">'+((hsP-1)*PZ+i+1)+'</td><td><span class="bl bl-lop">'+s.lop+'</span></td><td class="tdn">'+s.ten+'<small>'+s.ma+'</small></td><td style="font-size:11px">'+s.ns+'</td><td><span class="bl '+(s.gt==='Nam'?'bl-nam':'bl-nu')+'">'+s.gt+'</span></td><td class="c">'+kqL(kq)+'</td><td class="c">'+ll+'</td><td class="c">'+(isDone(s)?'<span class="bl bl-ok">✓</span>':'<span class="bl bl-no">Chưa</span>')+'</td><td class="c">'+abtn+'</td>'+delBtn+'</tr>';
   }).join('');T('hs-rc').textContent=tot+' HS';mkPagi('hs-pb','hs-pi',hsP,hsF,'hsPg');
 }
 function hsPg(p){hsP=Math.max(1,Math.min(p,Math.ceil(hsF.length/PZ)));renderHS();}
@@ -2361,6 +2384,7 @@ T('mBg').addEventListener('click',function(e){if(e.target.id==='mBg')cm('mBg');}
 T('uBg').addEventListener('click',function(e){if(e.target.id==='uBg')cm('uBg');});
 T('hbBg').addEventListener('click',function(e){if(e.target.id==='hbBg')cm('hbBg');});
 T('csdlBg').addEventListener('click',function(e){if(e.target.id==='csdlBg')cm('csdlBg');});
+T('addHSBg').addEventListener('click',function(e){if(e.target.id==='addHSBg')cm('addHSBg');});
 // Radio toggle-off: click checked radio again to uncheck
 document.addEventListener('click',function(e){
   var label=e.target.closest('.rg label');if(!label)return;
@@ -2834,6 +2858,60 @@ var _newLoginOK=function(){
   if(T('sb-avatar'))T('sb-avatar').textContent=(CU.hoten||CU.username).charAt(0).toUpperCase();
   if(T('sb-tot'))T('sb-tot').textContent=mySB().length;
 };
+
+// ═══ QUẢN LÝ HỌC SINH: THÊM / XÓA ═══
+function openAddHS(){
+  if(!needAdmin('Thêm học sinh'))return;
+  T('ahs-ten').value='';T('ahs-ma').value='';T('ahs-ns').value='';T('ahs-gt').value='';T('ahsErr').textContent='';
+  // Build lop dropdown
+  var sel=T('ahs-lop');sel.innerHTML='<option value="">Chọn lớp</option>';
+  [1,2,3,4,5].forEach(function(k){['A','B','C','D','E'].forEach(function(c){
+    sel.innerHTML+='<option value="'+k+c+'">Lớp '+k+c+'</option>';
+  });});
+  T('addHSBg').classList.add('on');
+}
+
+function saveNewHS(){
+  var ten=T('ahs-ten').value.trim();
+  var ma=T('ahs-ma').value.trim();
+  var ns=T('ahs-ns').value.trim();
+  var lop=T('ahs-lop').value;
+  var gt=T('ahs-gt').value;
+  if(!ten||!ns||!lop||!gt){T('ahsErr').textContent='⚠️ Vui lòng điền đầy đủ thông tin bắt buộc';return;}
+  // Auto-generate ma if empty
+  if(!ma) ma='NEW'+Date.now();
+  // Check duplicate
+  if(SB.find(function(s){return s.ma===ma;})){T('ahsErr').textContent='⚠️ Mã HS đã tồn tại: '+ma;return;}
+  var khoi=parseInt(lop);
+  var newHS={stt:String(SB.length+1),lop:lop,ma:ma,ten:ten,ns:ns,khoi:khoi,gt:gt,gioi_tinh:gt};
+  SB.push(newHS);
+  merge();updateAll();
+  cm('addHSBg');
+  toast('✅ Đã thêm: '+ten+' ('+lop+')','ok');
+  // Sync to Sheets
+  if(GAS){
+    gasPost({action:'saveStudentsBatch',batch:[newHS]}).then(function(r){
+      if(r.ok)toast('☁️ Đã lưu lên Sheets','ok');
+    }).catch(function(e){toast('⚠️ Lưu Sheets lỗi: '+e.message,'warn');});
+  }
+}
+
+function deleteHS(ma,ten){
+  if(!needAdmin('Xóa học sinh'))return;
+  if(!confirm('⚠️ Xóa học sinh: '+ten+' ('+ma+')\n\nHS chuyển trường sẽ bị xóa khỏi danh sách.\nDữ liệu điểm đã nhập vẫn giữ trên Sheets.\n\nXác nhận xóa?'))return;
+  var idx=SB.findIndex(function(s){return s.ma===ma;});
+  if(idx<0){toast('❌ Không tìm thấy HS','err');return;}
+  SB.splice(idx,1);
+  merge();updateAll();
+  toast('🗑 Đã xóa: '+ten,'ok');
+  // Sync deletion to Sheets
+  if(GAS){
+    gasPost({action:'deleteStudent',ma:ma}).then(function(r){
+      if(r.ok)toast('☁️ Đã xóa trên Sheets','ok');
+    }).catch(function(e){toast('⚠️ '+e.message,'warn');});
+  }
+}
+
 // ═══ MOBILE MENU ═══
 function toggleMobMenu(){
   var sb=document.querySelector('.sidebar');
