@@ -340,18 +340,106 @@ body:not(.is-admin) .ao::after{content:'🔒';position:absolute;right:8px;font-s
 body:not(.is-admin) .sb-item.ao{position:relative}
 body:not(.is-admin) .ao .cc-lbl::after{content:' (Chỉ Admin)';color:var(--rose);font-weight:600}
 
-@media(max-width:960px){
+/* ═══ TABLET (641-960px) ═══ */
+@media(max-width:960px) and (min-width:641px){
   .sidebar{width:56px;overflow:hidden}
-  .sidebar .sb-brand h1,.sidebar .sb-brand p,.sidebar .sb-period,.sidebar .sb-section-title,.sidebar .sb-item span:not(.ico),.sidebar .sb-item .badge,.sidebar .sb-user-name,.sidebar .sb-user-role,.sidebar .sb-footer{display:none!important}
+  .sidebar .sb-brand h1,.sidebar .sb-brand p,.sidebar .sb-period,.sidebar .sb-section-title,.sidebar .sb-item span:not(.ico),.sidebar .sb-item .badge,.sidebar .sb-user-name,.sidebar .sb-user-role{display:none!important}
   .sidebar .sb-item{justify-content:center;padding:10px}
   .main{margin-left:56px}
 }
+
+/* ═══ MOBILE (≤640px) ═══ */
 @media(max-width:640px){
-  .sidebar{display:none}
+  /* Sidebar: slide from left */
+  .sidebar{position:fixed;left:-280px;width:270px;z-index:600;transition:left .3s cubic-bezier(.4,0,.2,1);overflow-y:auto;overflow-x:hidden}
+  .sidebar.mob-open{left:0}
+  /* Restore all sidebar text when open */
+  .sidebar .sb-brand h1,.sidebar .sb-brand p,.sidebar .sb-period,.sidebar .sb-section-title,
+  .sidebar .sb-item span:not(.ico),.sidebar .sb-item .badge,
+  .sidebar .sb-user-name,.sidebar .sb-user-role,.sidebar .sb-footer{display:flex!important}
+  .sidebar .sb-item{justify-content:flex-start;padding:12px 14px;min-height:44px;font-size:14px}
+  .sidebar .sb-period{padding:14px 16px}
+  .period-btn{padding:10px 8px;font-size:12px}
+
+  /* Overlay */
+  .mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:599;-webkit-tap-highlight-color:transparent}
+  .mob-overlay.on{display:block}
+
+  /* Main area */
   .main{margin-left:0}
-  .content{padding:16px 12px 40px}
+  .content{padding:14px 10px 80px}
+
+  /* Topbar */
+  .topbar2{padding:0 10px;height:48px;gap:6px}
+  .topbar2-title{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+  .topbar2-period{font-size:10px;padding:3px 8px}
+  .sync-badge{font-size:10px;padding:4px 8px}
+  .sync-badge span{max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* Hamburger */
+  .mob-hamburger{display:flex!important;align-items:center;justify-content:center;width:38px;height:38px;border-radius:8px;border:none;background:var(--blue);color:white;font-size:20px;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;box-shadow:0 2px 6px rgba(37,99,235,.3)}
+
+  /* Cards & Grids */
+  .cgrid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .ccard{padding:10px 12px;gap:8px}
+  .cc-ico{width:30px;height:30px;border-radius:8px;font-size:14px}
+  .cc-val{font-size:18px}
+  .cc-lbl{font-size:9px}
   .cg{grid-template-columns:1fr}
   .fg2,.tt27g,.uf{grid-template-columns:1fr}
+
+  /* Table */
+  .tw{border-radius:var(--radius)}
+  .ts{-webkit-overflow-scrolling:touch}
+
+  /* Toolbar */
+  .tb{gap:4px;flex-wrap:wrap}
+  .tb select,.tb .btn{height:36px;font-size:11px;padding:0 10px}
+  .srch{min-width:140px}
+  .srch input{height:36px;font-size:12px}
+
+  /* Touch-friendly buttons */
+  .btn{min-height:44px;padding:0 14px}
+  .abtn{min-height:36px}
+  .sb-item{min-height:44px}
+
+  /* Modal */
+  .mbox{max-height:95vh;border-radius:16px 16px 0 0;margin-top:auto}
+  .mbox.sm{max-width:100%}
+  .mbox.lg{max-width:100%}
+  .mbg{align-items:flex-end;padding:0}
+  .mhd{border-radius:16px 16px 0 0}
+  .mft{flex-wrap:wrap;gap:8px}
+
+  /* Khối tabs */
+  .kts{gap:4px}
+  .kt{padding:6px 12px;font-size:11px}
+
+  /* Export page */
+  #pg-export .ccard{flex-direction:column;text-align:center;padding:14px 12px}
+  #pg-export .cc-ico{margin:0 auto 6px}
+  #pg-export div[style*="grid-template-columns"]{grid-template-columns:1fr!important}
+
+  /* Guide box */
+  #pg-export div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+
+  /* ═══ BOTTOM NAV ═══ */
+  .bottom-nav{display:flex!important;position:fixed;bottom:0;left:0;right:0;height:60px;background:var(--white);border-top:1.5px solid var(--slate6);z-index:500;box-shadow:0 -2px 12px rgba(0,0,0,.08);padding:4px 4px 2px;align-items:stretch;justify-content:space-around}
+  .bnav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:4px 6px;border-radius:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:var(--transition);flex:1;min-height:44px}
+  .bnav-item:active{transform:scale(.9)}
+  .bnav-item .bnav-ico{font-size:20px;line-height:1}
+  .bnav-item .bnav-lbl{font-size:9px;font-weight:600;color:var(--slate3);white-space:nowrap}
+  .bnav-item.on{background:var(--blue-xl)}
+  .bnav-item.on .bnav-lbl{color:var(--blue);font-weight:700}
+}
+
+/* Desktop: hide mobile-only elements */
+.mob-hamburger{display:none!important}
+.mob-overlay{display:none}
+.bottom-nav{display:none!important}
+@media(max-width:640px){
+  .mob-hamburger{display:flex!important}
+  .bottom-nav{display:flex!important}
 }
 </style>
 </head>
@@ -440,6 +528,7 @@ body:not(.is-admin) .ao .cc-lbl::after{content:' (Chỉ Admin)';color:var(--rose
 <!-- MAIN -->
 <div class="main">
 <div class="topbar2">
+  <button class="mob-hamburger" onclick="toggleMobMenu()">☰</button>
   <span class="topbar2-title" id="page-title">Học sinh</span>
   <span class="topbar2-period" id="cur-period-label" style="background:var(--rose-l);color:var(--rose)">Cuối năm</span>
   <div class="topbar2-right">
@@ -726,6 +815,18 @@ body:not(.is-admin) .ao .cc-lbl::after{content:' (Chỉ Admin)';color:var(--rose
 
 </div><!-- /content -->
 </div><!-- /main -->
+<!-- Mobile overlay -->
+<div class="mob-overlay" id="mobOverlay" onclick="closeMobMenu()"></div>
+
+<!-- Bottom Navigation (Mobile) -->
+<div class="bottom-nav" id="bottomNav">
+  <div class="bnav-item on" onclick="bnav('pg-hs',this)"><span class="bnav-ico">👥</span><span class="bnav-lbl">Học sinh</span></div>
+  <div class="bnav-item" onclick="bnav('pg-diem',this)"><span class="bnav-ico">✏️</span><span class="bnav-lbl">Nhập KQ</span></div>
+  <div class="bnav-item" onclick="bnav('pg-tk',this)"><span class="bnav-ico">📈</span><span class="bnav-lbl">Thống kê</span></div>
+  <div class="bnav-item" onclick="bnav('pg-hocba',this)"><span class="bnav-ico">📋</span><span class="bnav-lbl">Học bạ</span></div>
+  <div class="bnav-item" onclick="bnav('pg-export',this)"><span class="bnav-ico">📤</span><span class="bnav-lbl">Xuất BC</span></div>
+</div>
+
 </div><!-- /app-wrap -->
 </div><!-- /app-screen -->
 
@@ -2641,7 +2742,38 @@ var _newLoginOK=function(){
   if(T('sb-avatar'))T('sb-avatar').textContent=(CU.hoten||CU.username).charAt(0).toUpperCase();
   if(T('sb-tot'))T('sb-tot').textContent=SB.length;
 };
-loginOK=_newLoginOK;
+// ═══ MOBILE MENU ═══
+function toggleMobMenu(){
+  var sb=document.querySelector('.sidebar');
+  var ov=T('mobOverlay');
+  if(sb.classList.contains('mob-open')){closeMobMenu();}
+  else{sb.classList.add('mob-open');ov.classList.add('on');document.body.style.overflow='hidden';}
+}
+function closeMobMenu(){
+  var sb=document.querySelector('.sidebar');
+  var ov=T('mobOverlay');
+  sb.classList.remove('mob-open');ov.classList.remove('on');document.body.style.overflow='';
+}
+function bnav(pgId,el){
+  document.querySelectorAll('.bnav-item').forEach(function(b){b.classList.remove('on');});
+  if(el)el.classList.add('on');
+  gp(pgId);
+}
+// Override gp to also close mobile menu and sync bottom nav
+var _gpOrig2=gp;
+gp=function(id,el){
+  closeMobMenu();
+  _gpOrig2(id,el);
+  // Sync bottom nav
+  var map={'pg-hs':0,'pg-diem':1,'pg-tk':2,'pg-hocba':3,'pg-export':4};
+  var items=document.querySelectorAll('.bnav-item');
+  items.forEach(function(b){b.classList.remove('on');});
+  if(map[id]!==undefined&&items[map[id]])items[map[id]].classList.add('on');
+};
+// Also close sidebar when clicking sidebar items on mobile
+document.querySelectorAll('.sb-item').forEach(function(item){
+  item.addEventListener('click',function(){if(window.innerWidth<=640)setTimeout(closeMobMenu,100);});
+});
 </script>
 </body>
 </html>
