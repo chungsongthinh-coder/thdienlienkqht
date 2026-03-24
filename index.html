@@ -571,9 +571,9 @@ body:not(.is-gvbm) .gv-only{display:none!important}
       <div class="cc-ico" style="background:var(--violet-l)">📋</div>
       <div><div style="font-weight:700;font-size:13px">Học bạ Word</div><div class="cc-lbl">Vào module Học bạ để xuất</div></div>
     </div>
-    <div class="ccard ao" style="cursor:pointer;border-left:4px solid var(--rose)" onclick="expCSDL()">
+    <div class="ccard ao" style="cursor:pointer;border-left:4px solid var(--rose)" onclick="showCSDLPicker()">
       <div class="cc-ico" style="background:var(--rose-l)">🏛️</div>
-      <div><div style="font-weight:700;font-size:13px">Đồng bộ CSDL ngành</div><div class="cc-lbl">Xuất 5 file theo mẫu Sở GD&ĐT</div></div>
+      <div><div style="font-weight:700;font-size:13px">Đồng bộ CSDL ngành</div><div class="cc-lbl">Xuất mẫu CSDL ngành</div></div>
     </div>
   </div>
   <div class="ib blue"><strong>💡 Hướng dẫn</strong><p>Chọn loại báo cáo cần xuất. Dữ liệu sẽ được tổng hợp từ kỳ đánh giá hiện tại (<strong id="exp-period">Cuối năm</strong>). Chuyển kỳ đánh giá ở sidebar trái để xuất dữ liệu kỳ khác.</p></div>
@@ -1842,6 +1842,37 @@ function _csdlNLDacThu(k){
   return base;
 }
 
+function showCSDLPicker(){
+  var period=PERIODS.find(function(p){return p.id===curPeriod;});
+  var h='<div style="text-align:center;margin-bottom:20px"><div style="font-size:36px;margin-bottom:8px">🏛️</div>';
+  h+='<h3 style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px">Đồng bộ CSDL ngành</h3>';
+  h+='<p style="font-size:12px;color:var(--slate3)">Kỳ: <strong style="color:'+period.color+'">'+period.name+'</strong> — Chọn khối lớp để xuất</p></div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:400px;margin:0 auto">';
+  [1,2,3,4,5].forEach(function(k){
+    var count=SB.filter(function(s){return s.khoi===k;}).length;
+    var colors=['','#2563eb','#059669','#d97706','#7c3aed','#e11d48'];
+    h+='<div onclick="_expCSDLKhoi('+k+');cm('csdlBg')" style="cursor:pointer;padding:16px;border-radius:12px;border:2px solid #e2e8f0;text-align:center;transition:all .2s;background:white" onmouseover="this.style.borderColor=''+colors[k]+'';this.style.background='#f8fafc'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='white'">';
+    h+='<div style="font-size:24px;font-weight:800;color:'+colors[k]+'">Lớp '+k+'</div>';
+    h+='<div style="font-size:11px;color:var(--slate3);margin-top:4px">'+count+' học sinh</div></div>';
+  });
+  h+='</div>';
+  h+='<div style="text-align:center;margin-top:16px"><button class="btn bout" onclick="expCSDLAll()" style="font-size:12px">📦 Xuất tất cả 5 khối</button></div>';
+  T('csdlBd').innerHTML=h;
+  T('csdlBg').classList.add('on');
+}
+
+function expCSDLAll(){
+  cm('csdlBg');
+  loader('Đang xuất 5 file...');
+  var i=0;
+  function next(){
+    if(i>=5){loader();toast('🏛️ Đã xuất 5 file!','ok');return;}
+    i++;T('ldr-t').textContent='Xuất Lớp '+i+'...';
+    _expCSDLKhoi(i);
+    setTimeout(next,500);
+  }next();
+}
+
 function expCSDL(){
   if(curPeriod!=='cn'){
     if(!confirm('Mẫu CSDL ngành thường dùng cho kỳ Cuối năm. Bạn đang ở kỳ "'+PERIODS.find(function(p){return p.id===curPeriod;}).name+'". Tiếp tục?'))return;
@@ -2048,6 +2079,7 @@ function cm(id){T(id).classList.remove('on');if(id==='mBg')eIdx=null;if(id==='hb
 T('mBg').addEventListener('click',function(e){if(e.target.id==='mBg')cm('mBg');});
 T('uBg').addEventListener('click',function(e){if(e.target.id==='uBg')cm('uBg');});
 T('hbBg').addEventListener('click',function(e){if(e.target.id==='hbBg')cm('hbBg');});
+T('csdlBg').addEventListener('click',function(e){if(e.target.id==='csdlBg')cm('csdlBg');});
 
 // SAVE
 function saveCld(){
@@ -2365,7 +2397,16 @@ function hbSaveBatch(){
 // XUẤT WORD — ĐÚNG MẪU HỌC BẠ TT27
 function _wordBlob(html){
   var pre='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><style>@page{size:A4;margin:2cm 1.5cm}body{font-family:"Times New Roman",serif;font-size:13pt;line-height:1.5}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:4px 6px;font-size:12pt}h2,h3{text-align:center;margin:6px 0}p{margin:4px 0}</style></head><body>';
-  return new Blob([pre+html+'</body></html>'],{type:'application/msword'});
+  return new Blob([pre+html+'
+<!-- CSDL Picker Modal -->
+<div class="mbg" id="csdlBg">
+<div class="mbox sm">
+  <div class="mhd" style="background:linear-gradient(135deg,#991b1b,#e11d48)"><div><h2>🏛️ CSDL ngành</h2></div><button class="mcl" onclick="cm('csdlBg')">✕</button></div>
+  <div class="mbd" id="csdlBd"></div>
+</div>
+</div>
+
+</body></html>'],{type:'application/msword'});
 }
 function _dl(blob,name){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href);}
 
@@ -2512,5 +2553,14 @@ var _newLoginOK=function(){
 };
 loginOK=_newLoginOK;
 </script>
+
+<!-- CSDL Picker Modal -->
+<div class="mbg" id="csdlBg">
+<div class="mbox sm">
+  <div class="mhd" style="background:linear-gradient(135deg,#991b1b,#e11d48)"><div><h2>🏛️ CSDL ngành</h2></div><button class="mcl" onclick="cm('csdlBg')">✕</button></div>
+  <div class="mbd" id="csdlBd"></div>
+</div>
+</div>
+
 </body>
 </html>
