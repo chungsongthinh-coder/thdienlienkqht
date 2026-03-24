@@ -1398,10 +1398,9 @@ function dlMauGV(){
       cols.push({h:name,key:skey,w:14,note:'T / Đ / C',type:'nlpc'});
     }
   });
-  // GVCN: nếu GV dạy nhiều môn (>=3) trong 1 lớp → thêm NL + PC
-  var gvcnLops={};
-  Object.keys(subjMap).forEach(function(lop){if(subjMap[lop].length>=3)gvcnLops[lop]=true;});
-  if(Object.keys(gvcnLops).length>0){
+  // GVCN = GV có cột "lop_phu_trach" → cần thêm NL + PC + Lên lớp
+  var isGVCN=!!(CU&&CU.lop&&CU.lop.trim());
+  if(isGVCN){
     NL.forEach(function(nl){if(subjKeys.indexOf(nl[1])<0)cols.push({h:'NL: '+nl[0],key:nl[1],w:12,note:'T / Đ / C',type:'nlpc'});});
     PC.forEach(function(pc){if(subjKeys.indexOf(pc[1])<0)cols.push({h:'PC: '+pc[0],key:pc[1],w:12,note:'T / Đ / C',type:'nlpc'});});
     cols.push({h:'Lên lớp',key:'len_lop',w:10,note:'Có / Không'});
@@ -1538,10 +1537,12 @@ function _parseDiemGV(raw,subjMap){
 
   // Map header -> subject key bằng ASCII
   var subjKeys=Object.keys(subjMap);
+  var isGVCN=!!(CU&&CU.lop&&CU.lop.trim());
   var colMapping={};
   headers.forEach(function(h,ci){
     if(ci===iMa||ci===iLop||ci===iTen||headersA[ci]==='stt')return;
     var ha=_ascii(h);
+    // Match subject columns
     subjKeys.forEach(function(skey){
       var nameA=_ascii(_subjKeyToName(skey));
       if(skey.indexOf('mon_')===0){
@@ -1551,10 +1552,22 @@ function _parseDiemGV(raw,subjMap){
         if(ha===nameA||ha.indexOf(nameA)===0&&ha.length-nameA.length<5)colMapping[ci]={key:skey,type:'nlpc'};
       }
     });
+    // GVCN: match NL + PC + Lên lớp columns
+    if(isGVCN){
+      NL.forEach(function(nl){
+        var nlA=_ascii('NL: '+nl[0]);
+        if(ha===nlA||ha===_ascii(nl[0]))colMapping[ci]={key:nl[1],type:'nlpc'};
+      });
+      PC.forEach(function(pc){
+        var pcA=_ascii('PC: '+pc[0]);
+        if(ha===pcA||ha===_ascii(pc[0]))colMapping[ci]={key:pc[1],type:'nlpc'};
+      });
+      if(ha==='len lop'||ha.indexOf('len lop')>=0)colMapping[ci]={key:'len_lop',type:'ll'};
+    }
   });
-  console.log('GV Parse - headerRow:'+headerRow+' iMa:'+iMa+' cols:'+Object.keys(colMapping).length);
+  console.log('GV Parse - headerRow:'+headerRow+' iMa:'+iMa+' cols:'+Object.keys(colMapping).length+' GVCN:'+isGVCN);
 
-  // Skip notes rows - find first row where Mã HS column has a long number
+  // Skip notes rows
   var dataRows=raw.slice(headerRow+1);
   while(dataRows.length>0){
     var testMa=String(dataRows[0][iMa]||'').trim();
@@ -1570,8 +1583,9 @@ function _parseDiemGV(raw,subjMap){
     var hs=SB.find(function(s){return s.ma===ma;});
     if(!hs){skipped++;return;}
 
-    // Kiểm tra GV có quyền với lớp này
-    if(!userPerm[hs.lop]){skipped++;return;}
+    // Kiểm tra quyền: GV bộ môn cần có phân công cho lớp, GVCN được nhập lớp mình
+    var canWrite=!!(userPerm&&userPerm[hs.lop])||(isGVCN&&CU.lop===hs.lop);
+    if(!canWrite){skipped++;return;}
 
     var g=Object.assign({},grades[ma]||{});
     var hasData=false;
@@ -1597,10 +1611,15 @@ function _parseDiemGV(raw,subjMap){
         var mappedNL={T:'T','Đ':'Đ',D:'Đ',C:'CCG',CCG:'CCG'}[val.toUpperCase()]||{T:'T','Đ':'Đ',C:'CCG'}[val];
         if(mappedNL){g[col.key]=mappedNL;hasData=true;}
         else errors.push('Dòng '+(ri+1)+': "'+val+'" ≠ T/Đ/C');
+      }else if(col.type==='ll'){
+        if(val.toLowerCase()==='x'||val==='Có'){g[col.key]='Có';hasData=true;}
+        else if(val==='Không'||val==='-'){g[col.key]='Không';hasData=true;}
       }
     });
 
     if(hasData){
+      // GVCN: tự tính KQGD
+      if(isGVCN){var kq=cTT(ma,hs.khoi);if(kq){g.hoan_thanh=kq==='CHT'?'CHT':'HT';g.kqgd=kq;}}
       g.updated_at=new Date().toLocaleString('vi-VN');
       g.updated_by=CU?CU.username:'gv';
       grades[ma]=g;
