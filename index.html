@@ -1036,13 +1036,15 @@ function needAdmin(msg){
 
 // PERIOD SWITCHER
 function switchPeriod(pid){
-  // Save current period grades
-  allGrades[curPeriod]=grades;
+  if(pid===curPeriod)return;
+  // Save current period grades (deep copy to prevent reference leaks)
+  allGrades[curPeriod]=JSON.parse(JSON.stringify(grades));
   try{localStorage.setItem('_allGrades',JSON.stringify(allGrades));}catch(e){}
-  // Switch
+  // Switch to new period
   curPeriod=pid;
-  if(!allGrades[curPeriod])allGrades[curPeriod]={};
-  grades=allGrades[curPeriod];
+  // Load grades for new period (deep copy to isolate)
+  grades=allGrades[curPeriod]?JSON.parse(JSON.stringify(allGrades[curPeriod])):{};
+  allGrades[curPeriod]=grades;
   // Update UI
   document.querySelectorAll('.period-btn').forEach(function(b){b.classList.toggle('on',b.dataset.pid===pid);});
   T('cur-period-label').textContent=PERIODS.find(function(p){return p.id===pid;}).name;
@@ -1055,17 +1057,26 @@ function switchPeriod(pid){
 function syncNow(silent){
   if(!GAS){if(!silent)toast('⚠️ Chưa có GAS URL','warn');return;}
   sUI('ld');
-  // V2: load grades + nhận xét cùng lúc
+  var syncPeriod=curPeriod; // capture period at time of request
   Promise.all([
-    gasCall({action:'getGrades',period:curPeriod}),
+    gasCall({action:'getGrades',period:syncPeriod}),
     gasCall({action:'getNhanXet'}).catch(function(){return{ok:true,data:{}};})
   ]).then(function(results){
     var rG=results[0], rN=results[1];
     if(rG.ok){
       var remote=rG.data||{};
-      Object.keys(remote).forEach(function(k){grades[k]=remote[k];});
-      allGrades[curPeriod]=grades;
-      try{localStorage.setItem('_allGrades',JSON.stringify(allGrades));}catch(e){}
+      // CRITICAL: Only apply if still on same period (user may have switched)
+      if(syncPeriod===curPeriod){
+        // REPLACE grades entirely (not merge) to prevent cross-period contamination
+        grades={};
+        Object.keys(remote).forEach(function(k){grades[k]=remote[k];});
+        allGrades[curPeriod]=grades;
+        try{localStorage.setItem('_allGrades',JSON.stringify(allGrades));}catch(e){}
+      } else {
+        // User switched period during sync — store in correct period bucket
+        allGrades[syncPeriod]=remote;
+        try{localStorage.setItem('_allGrades',JSON.stringify(allGrades));}catch(e){}
+      }
     }
     if(rN.ok){
       var remoteNX=rN.data||{};
@@ -1085,10 +1096,17 @@ function syncNow(silent){
 function initApp(){
   GAS=localStorage.getItem('gas_url')||DEFAULT_GAS||'';
   try{allGrades=JSON.parse(localStorage.getItem('_allGrades')||'{}');}catch(e){allGrades={};}
-  if(!allGrades[curPeriod])allGrades[curPeriod]={};
-  // Migrate old grades to 'cn' period if needed
-  try{var oldG=JSON.parse(localStorage.getItem('_grades')||'{}');if(Object.keys(oldG).length&&!Object.keys(allGrades.cn||{}).length){allGrades.cn=oldG;}}catch(e){}
-  grades=allGrades[curPeriod]||{};
+  // Migrate old V2.0 flat grades to 'cn' period (one-time)
+  try{
+    var oldG=JSON.parse(localStorage.getItem('_grades')||'{}');
+    if(Object.keys(oldG).length&&!Object.keys(allGrades.cn||{}).length){
+      allGrades.cn=oldG;
+      localStorage.removeItem('_grades'); // clean up old key
+    }
+  }catch(e){}
+  // Load grades for current period (deep copy to isolate)
+  grades=allGrades[curPeriod]?JSON.parse(JSON.stringify(allGrades[curPeriod])):{};
+  allGrades[curPeriod]=grades;
   try{nhanXet=JSON.parse(localStorage.getItem('_nhanxet')||'{}');}catch(e){nhanXet={};}
   merge();buildSide();bldLop('hs-lop','');bldLop('d-lop','1');bldLop('hb-lop','');
   dK(1,document.querySelectorAll('#diem-kts .kt')[0]);
@@ -1100,7 +1118,11 @@ function initApp(){
 }
 
 function merge(){allS=SB.map(function(s){return Object.assign({},s,grades[s.ma]||{});});}
-function updateAll(){merge();buildSide();hsFil();dFil();updS();updP();renderSt();renderTK(tkKF);allGrades[curPeriod]=grades;try{localStorage.setItem('_allGrades',JSON.stringify(allGrades));}catch(e){}}
+function updateAll(){merge();buildSide();hsFil();dFil();updS();updP();renderSt();renderTK(tkKF);
+  // Save only current period
+  allGrades[curPeriod]=grades;
+  try{localStorage.setItem('_allGrades',JSON.stringify(allGrades));}catch(e){}
+}
 function updS(){var d=allS.filter(isDone).length;T('c-nhap').textContent=d;T('c-chua').textContent=SB.length-d;T('c-tot').textContent=SB.length;T('c-nam').textContent=SB.filter(function(s){return s.gt==='Nam';}).length;T('c-nu').textContent=SB.filter(function(s){return s.gt==='Nữ';}).length;}
 function updP(){var d=allS.filter(isDone).length,p=SB.length?Math.round(d/SB.length*100):0;if(T('s-prog'))T('s-prog').textContent=d+'/'+SB.length;if(T('s-pb'))T('s-pb').style.width=p+'%';if(T('s-pct'))T('s-pct').textContent=p+'%';if(T('sb-tot'))T('sb-tot').textContent=SB.length;}
 
