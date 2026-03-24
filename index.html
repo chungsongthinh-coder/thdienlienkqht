@@ -1049,31 +1049,45 @@ function onDiemFile(inp){
 }
 
 function _parseDiemExcel(raw,lop){
+  function _norm(s){return String(s||'').trim().normalize('NFC');}
   var k=parseInt(lop);
   var cols=_mauCols(k);
 
-  // Tìm dòng header (có 'Mã HS' hoặc 'Họ và tên')
+  // Tìm dòng header
   var headerRow=-1;
   for(var ri=0;ri<Math.min(raw.length,10);ri++){
-    var rowStr=raw[ri].join('|').toLowerCase();
-    if(rowStr.indexOf('mã hs')>=0||rowStr.indexOf('họ và tên')>=0||rowStr.indexOf('ma hs')>=0){
+    var rowStr=_norm(raw[ri].join('|')).toLowerCase();
+    if(rowStr.indexOf(_norm('mã hs').toLowerCase())>=0||rowStr.indexOf('ma hs')>=0||rowStr.indexOf(_norm('họ và tên').toLowerCase())>=0||rowStr.indexOf('stt')>=0&&rowStr.indexOf('ten')>=0){
       headerRow=ri;break;
     }
   }
-  if(headerRow<0){toast('❌ Không tìm thấy dòng tiêu đề (Mã HS, Họ và tên)','err');return;}
+  if(headerRow<0){toast('❌ Không tìm thấy dòng tiêu đề','err');return;}
 
-  var headers=raw[headerRow].map(function(h){return String(h).trim();});
+  var headers=raw[headerRow].map(function(h){return _norm(h);});
 
-  // Map header to col keys
+  // Map header to col keys - normalized matching
   var colMap={};
   cols.forEach(function(c){
+    var ch=_norm(c.h);
     for(var ci=0;ci<headers.length;ci++){
-      if(headers[ci]===c.h){colMap[c.key]=ci;break;}
+      if(headers[ci]===ch){colMap[c.key]=ci;break;}
     }
   });
 
-  // Kiểm tra cột Mã HS
-  if(colMap['_ma']===undefined){toast('❌ Không tìm thấy cột "Mã HS"','err');return;}
+  // Fallback: tìm Mã HS bằng cột có số dài
+  if(colMap['_ma']===undefined){
+    headers.forEach(function(h,i){
+      var hl=h.toLowerCase();
+      if(hl.indexOf('ma')>=0&&hl.indexOf('hs')>=0)colMap['_ma']=i;
+    });
+  }
+  if(colMap['_ma']===undefined){
+    for(var fi=0;fi<headers.length;fi++){
+      var testRow=raw[headerRow+1]||raw[headerRow+2];
+      if(testRow&&/^\d{8,}$/.test(String(testRow[fi]||'').trim())){colMap['_ma']=fi;break;}
+    }
+  }
+  if(colMap['_ma']===undefined){toast('❌ Không tìm thấy cột Mã HS','err');return;}
 
   var dataRows=raw.slice(headerRow+1);
   // Bỏ dòng ghi chú nếu có (dòng đầu sau header có thể là notes)
@@ -1333,23 +1347,33 @@ function onDiemFileGV(inp){
 }
 
 function _parseDiemGV(raw,subjMap){
+  // Normalize helper - fix Vietnamese Unicode issues
+  function _norm(s){return String(s||'').trim().normalize('NFC');}
   // Tìm header row
   var headerRow=-1;
   for(var ri=0;ri<Math.min(raw.length,10);ri++){
-    var rowStr=raw[ri].join('|').toLowerCase();
-    if(rowStr.indexOf('mã hs')>=0||rowStr.indexOf('họ và tên')>=0){headerRow=ri;break;}
+    var rowStr=_norm(raw[ri].join('|')).toLowerCase();
+    if(rowStr.indexOf(_norm('mã hs').toLowerCase())>=0||rowStr.indexOf(_norm('họ và tên').toLowerCase())>=0||rowStr.indexOf('ma hs')>=0||rowStr.indexOf('stt')>=0&&rowStr.indexOf('ten')>=0){headerRow=ri;break;}
   }
   if(headerRow<0){toast('❌ Không tìm thấy dòng tiêu đề','err');return;}
 
-  var headers=raw[headerRow].map(function(h){return String(h).trim();});
+  var headers=raw[headerRow].map(function(h){return _norm(h);});
 
-  // Tìm index cột Mã HS, Lớp
+  // Tìm index cột Mã HS, Lớp - flexible matching
   var iMa=-1,iLop=-1;
   headers.forEach(function(h,i){
-    if(h==='Mã HS')iMa=i;
-    if(h==='Lớp')iLop=i;
+    var hl=h.toLowerCase();
+    if(iMa<0&&(hl===_norm('Mã HS').toLowerCase()||hl==='ma hs'||hl===_norm('mã hs')||hl.indexOf('ma')>=0&&hl.indexOf('hs')>=0))iMa=i;
+    if(iLop<0&&(hl===_norm('Lớp').toLowerCase()||hl==='lop'||hl===_norm('lớp')))iLop=i;
   });
-  if(iMa<0){toast('❌ Không tìm thấy cột Mã HS','err');return;}
+  if(iMa<0){
+    // Fallback: tìm cột có dữ liệu giống mã HS (chuỗi số dài)
+    for(var fi=0;fi<headers.length;fi++){
+      var testRow=raw[headerRow+1]||raw[headerRow+2];
+      if(testRow&&/^\d{8,}$/.test(String(testRow[fi]||'').trim())){iMa=fi;break;}
+    }
+  }
+  if(iMa<0){toast('❌ Không tìm thấy cột Mã HS. Kiểm tra file mẫu.','err');return;}
 
   // Map header → key (chỉ cho môn GV được phân công)
   var subjKeys=Object.keys(subjMap);
@@ -1357,14 +1381,15 @@ function _parseDiemGV(raw,subjMap){
 
   headers.forEach(function(h,ci){
     if(ci===iMa||ci===iLop)return;
+    var hn=_norm(h);
     // Tìm match
     subjKeys.forEach(function(skey){
-      var name=_subjKeyToName(skey);
+      var name=_norm(_subjKeyToName(skey));
       if(skey.indexOf('mon_')===0){
-        if(h===name+' (ĐG)')colMapping[ci]={key:skey,type:'mon'};
-        if(h===name+' (Điểm)')colMapping[ci]={key:skey,type:'diem'};
+        if(hn===name+' (ĐG)'||hn===name+' (DG)')colMapping[ci]={key:skey,type:'mon'};
+        if(hn===name+' (Điểm)'||hn===name+' (Diem)')colMapping[ci]={key:skey,type:'diem'};
       }else{
-        if(h===name)colMapping[ci]={key:skey,type:'nlpc'};
+        if(hn===name)colMapping[ci]={key:skey,type:'nlpc'};
       }
     });
   });
