@@ -269,6 +269,12 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
 .nx-ta{width:100%;min-height:100px;border:1.5px solid var(--bd2);border-radius:var(--r8);padding:10px 12px;font-size:13px;line-height:1.8;outline:none;resize:vertical;font-family:inherit;transition:.2s}
 .nx-ta:focus{border-color:var(--pur);box-shadow:0 0 0 3px rgba(123,45,139,.1)}
 
+/* V2.0: Sticky columns for nhập điểm */
+#d-table-wrap{overflow-x:auto}
+#d-table-wrap table{min-width:900px}
+#d-table-wrap th{font-size:10px!important;padding:6px 4px!important}
+#d-table-wrap tbody tr:hover td{background:#f3f7fe!important}
+
 @media(max-width:880px){.sb{display:none}.cg{grid-template-columns:1fr}}
 @media(max-width:580px){.al{padding:10px 10px 32px}.fg2,.tt27g,.uf{grid-template-columns:1fr}}
 
@@ -386,8 +392,8 @@ code{font-family:monospace;font-size:12px;background:#f0f0f0;padding:1px 5px;bor
     <button class="btn bp" onclick="saveAllLop()">☁️ Lưu lớp lên Sheets</button>
     <span class="rc" id="d-rc"></span>
   </div>
-  <div class="tw"><div class="ts">
-    <table><thead><tr><th>Lớp</th><th>Họ tên</th><th class="c">Toán</th><th class="c">T.Việt</th><th class="c">Đạo đức</th><th class="c">NL</th><th class="c">PC</th><th class="c">KQGD</th><th class="c">Nhập</th></tr></thead>
+  <div class="tw"><div class="ts" id="d-table-wrap">
+    <table><thead id="d-thead"><tr><th>Lớp</th><th>Họ tên</th><th class="c">Đang tải...</th></tr></thead>
     <tbody id="d-tb"></tbody></table>
   </div><div class="pagi"><span class="pagi-info" id="d-pi"></span><div class="pagi-btns" id="d-pb"></div></div></div>
 </div>
@@ -583,6 +589,7 @@ var userPerm=null,importData=[],allUsers=[];
 var _dt={},PZ=30;
 // V2.0 state
 var nhanXet={},hbIdx=null,hbFiltered=[];
+var NL_CHUNG_IDX=3; // 3 NL đầu là NL chung, còn lại là NL đặc thù
 
 // UTILS
 function debounce(fn,ms){clearTimeout(_dt[fn.name]);_dt[fn.name]=setTimeout(fn,ms);}
@@ -800,7 +807,17 @@ function renderHS(){
 }
 function hsPg(p){hsP=Math.max(1,Math.min(p,Math.ceil(hsF.length/PZ)));renderHS();}
 
-// PAGE: NHẬP ĐIỂM
+// PAGE: NHẬP ĐIỂM — DYNAMIC TABLE
+var HIDDEN_SUBJ=['mon_Tiếng_dân_tộc']; // Ẩn các môn trường không dạy
+function _visibleSubj(k){return(SUBJ[String(k)]||SUBJ['1']).filter(function(mn){return HIDDEN_SUBJ.indexOf(mn[1])<0;});}
+function _shortName(n){return{
+  'Toán':'Toán','Tiếng Việt':'T.Việt','Đạo đức':'Đ.đức',
+  'Tự nhiên & XH':'TNXH','Ngoại ngữ':'NN','Tin học':'TH',
+  'Âm nhạc':'ÂN','Mĩ thuật':'MT','HĐTN':'HĐTN','Thể chất':'GDTC',
+  'Công nghệ':'CN','Khoa học':'KH','Lịch sử - Địa lí':'LS-ĐL',
+  'Tiếng dân tộc':'TDT'
+}[n]||n.substring(0,6);}
+
 function dK(k,el){curK=k;document.querySelectorAll('#diem-kts .kt').forEach(function(t){t.classList.remove('on');});if(el)el.classList.add('on');bldLop('d-lop',String(k));dFil();}
 function dFil(){
   var lop=T('d-lop').value,q=T('d-q').value.toLowerCase(),nt=T('d-nt').value;
@@ -808,16 +825,72 @@ function dFil(){
   dP=1;renderD();
 }
 function renderD(){
+  var sj=_visibleSubj(curK);
+  // Build header
+  var th='<tr><th style="position:sticky;left:0;z-index:2;background:#0d3d82;min-width:38px">Lớp</th>';
+  th+='<th style="position:sticky;left:38px;z-index:2;background:#0d3d82;min-width:120px">Họ tên</th>';
+  // Môn học headers
+  sj.forEach(function(mn){
+    var sn=_shortName(mn[0]),hasDiem=mn[2]&&mn[3];
+    if(hasDiem) th+='<th class="c" style="min-width:55px;font-size:9px;line-height:1.2">'+sn+'<br><span style="font-weight:400;font-size:8px">ĐG/Điểm</span></th>';
+    else th+='<th class="c" style="min-width:36px;font-size:9px">'+sn+'</th>';
+  });
+  // NL chung
+  NL.slice(0,NL_CHUNG_IDX).forEach(function(nl){
+    th+='<th class="c" style="min-width:32px;font-size:8px;line-height:1.2;background:#1565c0">'+nl[0].split(' ')[0].substring(0,4)+'</th>';
+  });
+  // NL đặc thù
+  NL.slice(NL_CHUNG_IDX).forEach(function(nl){
+    th+='<th class="c" style="min-width:32px;font-size:8px;line-height:1.2;background:#e65100">'+nl[0].substring(0,4)+'</th>';
+  });
+  // PC
+  PC.forEach(function(pc){
+    th+='<th class="c" style="min-width:32px;font-size:8px;line-height:1.2;background:#1b5e20">'+pc[0].substring(0,4)+'</th>';
+  });
+  th+='<th class="c" style="min-width:50px;font-size:9px">KQGD</th>';
+  th+='<th class="c" style="min-width:34px;font-size:9px">Lên<br>lớp</th>';
+  th+='<th class="c" style="min-width:30px"></th></tr>';
+  T('d-thead').innerHTML=th;
+
   var tot=dF.length,rows=dF.slice((dP-1)*PZ,dP*PZ),tb=T('d-tb');
-  if(!tot){tb.innerHTML='<tr><td colspan="9"><div class="empty"><div class="ei">📋</div><p>Không có HS</p></div></td></tr>';T('d-rc').textContent='';return;}
+  var colSpan=2+sj.length+NL.length+PC.length+3;
+  if(!tot){tb.innerHTML='<tr><td colspan="'+colSpan+'"><div class="empty"><div class="ei">📋</div><p>Không có HS</p></div></td></tr>';T('d-rc').textContent='';return;}
   tb.innerHTML=rows.map(function(s){
     var gi=SB.findIndex(function(b){return b.ma===s.ma;}),g=grades[s.ma]||{},kq=cTT(s.ma,s.khoi);
-    var tn=g['mon_Toán']?blH(g['mon_Toán']):'<span style="color:#ccc">—</span>';
-    var tv=g['mon_Tiếng_việt']?blH(g['mon_Tiếng_việt']):'<span style="color:#ccc">—</span>';
-    var nlD=NL.filter(function(nl){return(g)[nl[1]];}).length;
-    var pcD=PC.filter(function(pc){return(g)[pc[1]];}).length;
-    var abtn=canE(s.lop)?'<button class="abtn ae" onclick="openM('+gi+')">✏️</button>':'<button class="abtn alck">🔒</button>';
-    return'<tr><td><span class="bl bl-lop">'+s.lop+'</span></td><td class="tdn">'+s.ten+'<small>'+s.ma+'</small></td><td class="c">'+tn+'</td><td class="c">'+tv+'</td><td class="c">'+blH(g['mon_Đạo_đức'])+'</td><td class="c"><span style="'+(nlD===NL.length?'color:var(--g)':nlD>0?'color:var(--o)':'color:#ccc')+';font-weight:600">'+nlD+'/'+NL.length+'</span></td><td class="c"><span style="'+(pcD===PC.length?'color:var(--g)':pcD>0?'color:var(--o)':'color:#ccc')+';font-weight:600">'+pcD+'/'+PC.length+'</span></td><td class="c">'+kqL(kq)+'</td><td class="c">'+abtn+'</td></tr>';
+    var abtn=canE(s.lop)?'<button class="abtn ae" onclick="openM('+gi+')" style="padding:0 5px">✏️</button>':'<button class="abtn alck" style="padding:0 5px">🔒</button>';
+    var r='<tr>';
+    r+='<td style="position:sticky;left:0;z-index:1;background:#fff"><span class="bl bl-lop" style="font-size:9px">'+s.lop+'</span></td>';
+    r+='<td style="position:sticky;left:38px;z-index:1;background:#fff" class="tdn"><span style="font-size:11.5px">'+s.ten+'</span></td>';
+    // Môn
+    sj.forEach(function(mn){
+      var mv=g[mn[1]]||'',dv=mn[2]&&mn[3]?(g[mn[2]]!==undefined&&g[mn[2]]!==''?g[mn[2]]:''):'';
+      if(mn[2]&&mn[3]){
+        // Có điểm
+        var mBl=mv?'<span style="font-size:9px;'+({HTT:'color:#00695c',HT:'color:var(--p)',CHT:'color:var(--r)'}[mv]||'color:#999')+'">'+({HTT:'T',HT:'Đ',CHT:'C'}[mv]||mv)+'</span>':'<span style="color:#ddd;font-size:9px">—</span>';
+        var dBl=dv!==''?'<b style="font-size:11px">'+dv+'</b>':'';
+        r+='<td class="c" style="padding:3px 2px;line-height:1.1;white-space:nowrap">'+mBl+(dv!==''?'<br>':'')+ dBl+'</td>';
+      } else {
+        r+='<td class="c" style="padding:3px 2px">'+( mv?'<span style="font-size:9px;'+({HTT:'color:#00695c;font-weight:600',HT:'color:var(--p)',CHT:'color:var(--r)'}[mv]||'')+'">'+({HTT:'T',HT:'Đ',CHT:'C'}[mv]||mv)+'</span>':'<span style="color:#ddd;font-size:9px">—</span>')+'</td>';
+      }
+    });
+    // NL
+    NL.forEach(function(nl){
+      var v=g[nl[1]]||'';
+      r+='<td class="c" style="padding:2px 1px;font-size:9px;'+(v==='T'?'color:#00695c;font-weight:700':v==='Đ'?'color:var(--p)':v==='CCG'?'color:var(--r)':'color:#ddd')+'">'+(v||'—')+'</td>';
+    });
+    // PC
+    PC.forEach(function(pc){
+      var v=g[pc[1]]||'';
+      r+='<td class="c" style="padding:2px 1px;font-size:9px;'+(v==='T'?'color:#1b5e20;font-weight:700':v==='Đ'?'color:var(--p)':v==='CCG'?'color:var(--r)':'color:#ddd')+'">'+(v||'—')+'</td>';
+    });
+    // KQGD
+    r+='<td class="c" style="padding:2px">'+kqL(kq)+'</td>';
+    // Lên lớp
+    var ll=g.len_lop;
+    r+='<td class="c" style="padding:2px">'+(ll==='Có'?'<span style="color:var(--g);font-weight:700;font-size:10px">✓</span>':ll==='Không'?'<span style="color:var(--r);font-size:10px">✗</span>':'<span style="color:#ddd;font-size:9px">—</span>')+'</td>';
+    r+='<td class="c" style="padding:2px">'+abtn+'</td>';
+    r+='</tr>';
+    return r;
   }).join('');T('d-rc').textContent=tot+' HS';mkPagi('d-pb','d-pi',dP,dF,'dPg');
 }
 function dPg(p){dP=Math.max(1,Math.min(p,Math.ceil(dF.length/PZ)));renderD();}
