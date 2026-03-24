@@ -1860,7 +1860,7 @@ function showCSDLPicker(){
   [1,2,3,4,5].forEach(function(k){
     var count=SB.filter(function(s){return s.khoi===k;}).length;
     var colors=['','#2563eb','#059669','#d97706','#7c3aed','#e11d48'];
-    h+='<div onclick="_expCSDLKhoi('+k+');cm('csdlBg')" style="cursor:pointer;padding:16px;border-radius:12px;border:2px solid #e2e8f0;text-align:center;transition:all .2s;background:white" onmouseover="this.style.borderColor=''+colors[k]+'';this.style.background='#f8fafc'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='white'">';
+    h+='<div onclick="_expCSDLKhoi('+k+');cm(&quot;csdlBg&quot;)" style="cursor:pointer;padding:16px;border-radius:12px;border:2px solid #e2e8f0;text-align:center;transition:all .2s;background:white" onmouseover="this.style.borderColor=&quot;'+colors[k]+'&quot;;this.style.background=&quot;#f8fafc&quot;" onmouseout="this.style.borderColor=&quot;#e2e8f0&quot;;this.style.background=&quot;white&quot;">';
     h+='<div style="font-size:24px;font-weight:800;color:'+colors[k]+'">Lớp '+k+'</div>';
     h+='<div style="font-size:11px;color:var(--slate3);margin-top:4px">'+count+' học sinh</div></div>';
   });
