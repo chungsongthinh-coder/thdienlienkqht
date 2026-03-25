@@ -1104,6 +1104,19 @@ function parsePC(str){
 function canE(lop){if(!CU)return false;if(CU.role==='admin'||userPerm===null)return true;return!!userPerm[lop];}
 function editSubs(lop){if(!CU)return[];if(CU.role==='admin'||userPerm===null)return null;return userPerm[lop]||[];}
 
+// PERIOD PROGRESS CHECK
+function checkPeriodReady(pid){
+  var order=['gk1','ck1','gk2','cn'];
+  var idx=order.indexOf(pid);
+  if(idx<=0)return;
+  var prevId=order[idx-1];
+  var prevData=allGrades[prevId]||{};
+  if(!Object.keys(prevData).length){
+    var prevName=PERIODS.find(function(p){return p.id===prevId;}).name;
+    toast('⚠️ Kỳ "'+prevName+'" chưa có dữ liệu','warn');
+  }
+}
+
 // ADMIN GUARD
 function needAdmin(msg){
   if(CU&&CU.role==='admin')return true;
@@ -1116,17 +1129,18 @@ function switchPeriod(pid){
   if(pid===curPeriod)return;
   // Save current period grades (deep copy to prevent reference leaks)
   allGrades[curPeriod]=JSON.parse(JSON.stringify(grades));
-  try{localStorage.setItem('_allGrades',JSON.stringify(allGrades));}catch(e){}
-  // Switch to new period
+  // Switch
   curPeriod=pid;
-  // Load grades for new period (deep copy to isolate)
-  grades=allGrades[curPeriod]?JSON.parse(JSON.stringify(allGrades[curPeriod])):{};
+  // Load: deep copy from saved, or empty
+  var saved=allGrades[curPeriod];
+  grades=saved?JSON.parse(JSON.stringify(saved)):{};
   allGrades[curPeriod]=grades;
   // Update UI
   document.querySelectorAll('.period-btn').forEach(function(b){b.classList.toggle('on',b.dataset.pid===pid);});
   T('cur-period-label').textContent=PERIODS.find(function(p){return p.id===pid;}).name;
   merge();updateAll();
   if(GAS)syncNow(true);
+  checkPeriodReady(pid);
   toast('📅 Chuyển sang: '+PERIODS.find(function(p){return p.id===pid;}).name,'ok');
 }
 
@@ -1145,9 +1159,10 @@ function syncNow(silent){
       // CRITICAL: Only apply if still on same period (user may have switched)
       if(syncPeriod===curPeriod){
         // REPLACE grades entirely (not merge) to prevent cross-period contamination
-        grades={};
-        Object.keys(remote).forEach(function(k){grades[k]=remote[k];});
-        allGrades[curPeriod]=grades;
+        var newGrades={};
+        Object.keys(remote).forEach(function(k){newGrades[k]=remote[k];});
+        grades=newGrades;
+        allGrades[curPeriod]=newGrades;
         try{localStorage.setItem('_allGrades',JSON.stringify(allGrades));}catch(e){}
       } else {
         // User switched period during sync — store in correct period bucket
@@ -1173,7 +1188,7 @@ function syncNow(silent){
 function initApp(){
   GAS=localStorage.getItem('gas_url')||DEFAULT_GAS||'';
   var savedVer=localStorage.getItem('_appVer')||'';
-  if(savedVer!=='3.0'){localStorage.removeItem('_allGrades');localStorage.removeItem('_grades');localStorage.setItem('_appVer','3.0');}
+  if(savedVer!=='3.1'){localStorage.removeItem('_allGrades');localStorage.removeItem('_grades');localStorage.setItem('_appVer','3.1');}
   try{allGrades=JSON.parse(localStorage.getItem('_allGrades')||'{}');}catch(e){allGrades={};}
   // Migrate old V2.0 flat grades to 'cn' period (one-time)
   try{
@@ -1197,11 +1212,8 @@ function initApp(){
 }
 
 function merge(){allS=mySB().map(function(s){return Object.assign({},s,grades[s.ma]||{});});}
-function updateAll(){merge();buildSide();hsFil();dFil();updS();updP();renderSt();renderTK(tkKF);
-  // Save only current period
-  allGrades[curPeriod]=grades;
-  try{localStorage.setItem('_allGrades',JSON.stringify(allGrades));}catch(e){}
-}
+function updateAll(){merge();buildSide();hsFil();dFil();updS();updP();renderSt();renderTK(tkKF);}
+function _saveGradesToStorage(){_saveGradesToStorage()}
 function updS(){var ms=mySB();var d=allS.filter(isDone).length;T('c-nhap').textContent=d;T('c-chua').textContent=ms.length-d;T('c-tot').textContent=ms.length;T('c-nam').textContent=ms.filter(function(s){return s.gt==='Nam';}).length;T('c-nu').textContent=ms.filter(function(s){return s.gt==='Nữ';}).length;}
 function updP(){var ms=mySB();var d=allS.filter(isDone).length,p=ms.length?Math.round(d/ms.length*100):0;if(T('s-prog'))T('s-prog').textContent=d+'/'+ms.length;if(T('s-pb'))T('s-pb').style.width=p+'%';if(T('s-pct'))T('s-pct').textContent=p+'%';if(T('sb-tot'))T('sb-tot').textContent=ms.length;}
 
@@ -1747,7 +1759,7 @@ function _parseDiemExcel(raw,lop){
   });
 
   // Lưu local
-  allGrades[curPeriod]=grades;try{localStorage.setItem('_allGrades',JSON.stringify(allGrades));}catch(e){}
+  _saveGradesToStorage()
   merge();updateAll();
 
   // Hiện kết quả
@@ -2101,7 +2113,7 @@ function _parseDiemGV(raw,subjMap){
     }
   });
 
-  allGrades[curPeriod]=grades;try{localStorage.setItem('_allGrades',JSON.stringify(allGrades));}catch(e){}
+  _saveGradesToStorage()
   merge();updateAll();
 
   var msg='✅ Nhập xong: '+updated+' HS cập nhật';
@@ -2365,7 +2377,7 @@ function openM(idx){
   T('mBd').innerHTML=h;T('mBg').classList.add('on');
 }
 function vD(inp){var v=inp.value;if(v===''){inp.classList.remove('inv');return;}var n=parseInt(v);if(isNaN(n)||n<0||n>10)inp.classList.add('inv');else{inp.classList.remove('inv');inp.value=String(n);}}
-function onGC(idx){var s=SB[idx];if(!s)return;var tmp=colG();grades[s.ma]=Object.assign({},grades[s.ma]||{},tmp);var kq=cTT(s.ma,s.khoi),g=grades[s.ma];if(T('t-kq'))T('t-kq').innerHTML=kqL(kq);if(T('t-kh'))T('t-kh').innerHTML=khenL(g,kq);if(T('t-ll')){var ll=g.len_lop||'';T('t-ll').innerHTML=ll?blH(ll,ll==='Có'?'bl-ht':'bl-cht'):'—';}}
+function onGC(idx){var s=SB[idx];if(!s)return;var tmp=colG();grades[s.ma]=Object.assign({},grades[s.ma]||{},tmp);_saveGradesToStorage();var kq=cTT(s.ma,s.khoi),g=grades[s.ma];if(T('t-kq'))T('t-kq').innerHTML=kqL(kq);if(T('t-kh'))T('t-kh').innerHTML=khenL(g,kq);if(T('t-ll')){var ll=g.len_lop||'';T('t-ll').innerHTML=ll?blH(ll,ll==='Có'?'bl-ht':'bl-cht'):'—';}}
 function colG(){
   var s=SB[eIdx];if(!s)return{};var k=String(s.khoi),sj=SUBJ[k]||SUBJ['1'],g=Object.assign({},grades[s.ma]||{});
   sj.forEach(function(mn){var mk=mn[1],dk=mn[2];var r=document.querySelector('input[name="m_'+mk+'"]:checked:not(:disabled)');if(r)g[mk]=r.value;if(dk){var d=T('fd_'+dk);if(d&&!d.disabled&&d.value.trim()!=='')g[dk]=String(parseInt(d.value)||0);}});
@@ -2401,7 +2413,7 @@ document.addEventListener('mousedown',function(e){
 function saveCld(){
   if(eIdx===null)return;if(document.querySelectorAll('.diemw input.inv').length){toast('❌ Điểm không hợp lệ','err');return;}
   var s=SB[eIdx],g=colG();g.updated_at=new Date().toLocaleString('vi-VN');g.updated_by=CU?CU.username:'?';
-  grades[s.ma]=g;allGrades[curPeriod]=grades;try{localStorage.setItem('_allGrades',JSON.stringify(allGrades));}catch(e){}
+  grades[s.ma]=g;_saveGradesToStorage()
   cm('mBg');updateAll();
   if(!GAS){toast('⚠️ Chỉ lưu tạm trên máy','warn');return;}
   loader('Đang lưu lên Sheets...');
